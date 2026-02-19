@@ -2,7 +2,7 @@
 
 import json
 import logging
-from app.agent.claude_client import chat_with_image
+from app.agent.claude_client import chat_with_image_sync as chat_with_image
 from app.agent.prompts import CV_EXTRACTION_SYSTEM
 
 logger = logging.getLogger(__name__)

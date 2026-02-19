@@ -1,7 +1,7 @@
 """RAG-based Q&A handler for ANAPEC service questions."""
 
 import logging
-from app.agent.claude_client import chat
+from app.agent.claude_client import chat_sync as chat
 from app.agent.prompts import RAG_QA_SYSTEM
 from app.rag.knowledge_base import get_knowledge_base
 

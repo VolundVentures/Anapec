@@ -2,7 +2,7 @@
 
 import json
 import logging
-from app.agent.claude_client import chat
+from app.agent.claude_client import chat_sync as chat
 from app.agent.prompts import JOB_SEARCH_EXTRACTION, JOB_RANKING_SYSTEM
 from app.db.database import SessionLocal
 from app.db import crud

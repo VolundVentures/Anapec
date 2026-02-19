@@ -2,7 +2,7 @@
 
 import json
 import logging
-from app.agent.claude_client import chat
+from app.agent.claude_client import chat_sync as chat
 
 logger = logging.getLogger(__name__)
 

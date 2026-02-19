@@ -1,5 +1,6 @@
 from twilio.rest import Client
 from app.config import get_settings
+import asyncio
 import httpx
 import logging
 
@@ -19,13 +20,15 @@ class WhatsAppClient:
         if len(text) > 4000:
             chunks = self._split_message(text, 4000)
             for chunk in chunks:
-                self.twilio.messages.create(
+                await asyncio.to_thread(
+                    self.twilio.messages.create,
                     from_=self.from_number,
                     to=to,
                     body=chunk,
                 )
         else:
-            self.twilio.messages.create(
+            await asyncio.to_thread(
+                self.twilio.messages.create,
                 from_=self.from_number,
                 to=to,
                 body=text,
@@ -34,7 +37,8 @@ class WhatsAppClient:
     async def send_document(self, to: str, filename: str, caption: str = ""):
         """Send a PDF document via WhatsApp."""
         media_url = f"{self.base_url}/cv/{filename}"
-        self.twilio.messages.create(
+        await asyncio.to_thread(
+            self.twilio.messages.create,
             from_=self.from_number,
             to=to,
             body=caption,

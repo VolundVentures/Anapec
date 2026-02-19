@@ -1,5 +1,6 @@
 """The Brain — autonomous agent orchestrator that plans and executes actions."""
 
+import asyncio
 import json
 import logging
 from app.whatsapp.models import IncomingMessage
@@ -58,7 +59,7 @@ If they're asking about ANAPEC, answer. Be autonomous — chain actions when log
 Respond with a JSON object with "thinking" and "actions" fields."""
 
         # Get orchestrator decision
-        response = chat(
+        response = await chat(
             system=ORCHESTRATOR_SYSTEM,
             messages=[{"role": "user", "content": orchestrator_input}],
             model="claude-sonnet-4-5-20250929",
@@ -91,7 +92,7 @@ async def handle_media_message(message: IncomingMessage, conv: ConversationManag
         if mtype.startswith("image/") or mtype == "application/pdf":
             try:
                 media_data, content_type = await download_twilio_media(url)
-                extracted = extract_cv_from_image(media_data, content_type)
+                extracted = await asyncio.to_thread(extract_cv_from_image, media_data, content_type)
 
                 if extracted and extracted.get("full_name"):
                     conv.set_collected_data(extracted)
@@ -106,9 +107,9 @@ async def handle_media_message(message: IncomingMessage, conv: ConversationManag
                     )
 
                     # Auto-enhance and generate
-                    enhanced = enhance_cv_data(extracted)
+                    enhanced = await asyncio.to_thread(enhance_cv_data, extracted)
                     if enhanced:
-                        filename = generate_cv_pdf(enhanced)
+                        filename = await asyncio.to_thread(generate_cv_pdf, enhanced)
                         if filename:
                             db = SessionLocal()
                             try:
@@ -207,10 +208,10 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
 
                 # Enhance with Claude Opus
                 target_job = merged.get("desired_position", merged.get("target_job"))
-                enhanced = enhance_cv_data(merged, target_job=target_job)
+                enhanced = await asyncio.to_thread(enhance_cv_data, merged, target_job)
 
                 if enhanced:
-                    filename = generate_cv_pdf(enhanced)
+                    filename = await asyncio.to_thread(generate_cv_pdf, enhanced)
                     if filename:
                         # Save to DB
                         db = SessionLocal()
@@ -257,7 +258,8 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
                                    f"{' à ' + city if city else ''}"
                                    f"{' en ' + sector if sector else ''}...*")
 
-                results = search_and_rank_jobs(
+                results = await asyncio.to_thread(
+                    search_and_rank_jobs,
                     query=message.body,
                     city=city,
                     sector=sector,
@@ -268,7 +270,7 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
 
             elif action_type == "answer_question":
                 query = action.get("query", message.body)
-                answer = answer_anapec_question(query, conv.user.language or "fr")
+                answer = await asyncio.to_thread(answer_anapec_question, query, conv.user.language or "fr")
                 conv.add_assistant_message(answer)
                 await wa.send_text(message.from_number, answer)
 
@@ -281,9 +283,9 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
                 if job_id and conv.collected_data:
                     await wa.send_text(message.from_number,
                                        "⏳ *Optimisation de votre CV pour ce poste...*")
-                    tailored = tailor_cv_for_job(conv.collected_data, job_id)
+                    tailored = await asyncio.to_thread(tailor_cv_for_job, conv.collected_data, job_id)
                     if tailored:
-                        filename = generate_cv_pdf(tailored)
+                        filename = await asyncio.to_thread(generate_cv_pdf, tailored)
                         if filename:
                             await wa.send_document(
                                 message.from_number,

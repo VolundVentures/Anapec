@@ -1,4 +1,5 @@
 import anthropic
+import asyncio
 import base64
 import logging
 from app.config import get_settings
@@ -15,9 +16,9 @@ def get_claude() -> anthropic.Anthropic:
     return _client
 
 
-def chat(system: str, messages: list[dict], model: str = "claude-sonnet-4-5-20250929",
-         max_tokens: int = 4096, temperature: float = 0.7) -> str:
-    """Send a chat message to Claude and return the text response."""
+def chat_sync(system: str, messages: list[dict], model: str = "claude-sonnet-4-5-20250929",
+              max_tokens: int = 4096, temperature: float = 0.7) -> str:
+    """Synchronous chat call — use from sync functions only."""
     client = get_claude()
     response = client.messages.create(
         model=model,
@@ -29,16 +30,22 @@ def chat(system: str, messages: list[dict], model: str = "claude-sonnet-4-5-2025
     return response.content[0].text
 
 
-def chat_with_image(system: str, messages: list[dict], image_data: bytes,
-                    media_type: str = "image/jpeg",
-                    model: str = "claude-sonnet-4-5-20250929",
-                    max_tokens: int = 4096) -> str:
-    """Send a chat message with an image to Claude Vision."""
+async def chat(system: str, messages: list[dict], model: str = "claude-sonnet-4-5-20250929",
+               max_tokens: int = 4096, temperature: float = 0.7) -> str:
+    """Send a chat message to Claude and return the text response."""
+    return await asyncio.to_thread(
+        chat_sync, system, messages, model, max_tokens, temperature
+    )
+
+
+def chat_with_image_sync(system: str, messages: list[dict], image_data: bytes,
+                         media_type: str = "image/jpeg", model: str = "claude-sonnet-4-5-20250929",
+                         max_tokens: int = 4096) -> str:
+    """Synchronous vision call — use from sync functions only."""
     client = get_claude()
     b64_image = base64.standard_b64encode(image_data).decode("utf-8")
 
     vision_messages = messages.copy()
-    # Append image to the last user message or create one
     vision_messages.append({
         "role": "user",
         "content": [
@@ -64,3 +71,13 @@ def chat_with_image(system: str, messages: list[dict], image_data: bytes,
         messages=vision_messages,
     )
     return response.content[0].text
+
+
+async def chat_with_image(system: str, messages: list[dict], image_data: bytes,
+                          media_type: str = "image/jpeg",
+                          model: str = "claude-sonnet-4-5-20250929",
+                          max_tokens: int = 4096) -> str:
+    """Send a chat message with an image to Claude Vision."""
+    return await asyncio.to_thread(
+        chat_with_image_sync, system, messages, image_data, media_type, model, max_tokens
+    )
