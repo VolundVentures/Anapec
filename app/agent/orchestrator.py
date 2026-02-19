@@ -17,6 +17,7 @@ from app.cv.tailor import tailor_cv_for_job
 from app.cv.pdf import generate_cv_pdf
 from app.vision.media import download_twilio_media
 from app.vision.cv_extractor import extract_cv_from_image
+from app.voice.transcriber import transcribe_audio
 from app.jobs.search import search_and_rank_jobs
 from app.rag.qa_handler import answer_anapec_question
 from app.db.database import SessionLocal
@@ -31,52 +32,18 @@ async def handle_incoming_message(message: IncomingMessage):
     wa = get_whatsapp_client()
 
     try:
-        # Record user message
-        conv.add_user_message(message.body)
         print(f"[ORCHESTRATOR] Processing message from {message.from_number}: {message.body[:80]}")
 
-        # Handle media (image/document upload)
+        # Handle media (voice notes, images, documents)
         if message.num_media > 0:
             await handle_media_message(message, conv, wa)
             return
 
-        # Build context for the orchestrator
-        context = conv.get_context_summary()
-        history = conv.get_claude_messages()
+        # Record user message
+        conv.add_user_message(message.body)
 
-        # Build the orchestrator prompt
-        orchestrator_input = f"""CONTEXT:
-{context}
-
-CONVERSATION HISTORY (last messages):
-{json.dumps(history[-10:], ensure_ascii=False)}
-
-NEW USER MESSAGE: {message.body}
-
-Decide what to do. If the user is in the middle of CV creation, continue collecting info.
-If they have enough data for a CV, generate it. If they're asking about jobs, search.
-If they're asking about ANAPEC, answer. Be autonomous — chain actions when logical.
-
-Respond with a JSON object with "thinking" and "actions" fields."""
-
-        # Get orchestrator decision
-        print("[ORCHESTRATOR] Calling Claude API...")
-        response = await chat(
-            system=ORCHESTRATOR_SYSTEM,
-            messages=[{"role": "user", "content": orchestrator_input}],
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=4096,
-            temperature=0.4,
-        )
-        print(f"[ORCHESTRATOR] Claude responded ({len(response)} chars): {response[:200]}")
-
-        # Parse the orchestrator's decision
-        actions = parse_orchestrator_response(response)
-        print(f"[ORCHESTRATOR] Parsed {len(actions)} actions: {[a.get('type') for a in actions]}")
-
-        # Execute actions
-        await execute_actions(actions, conv, wa, message)
-        print(f"[ORCHESTRATOR] All actions executed successfully")
+        # Run the orchestrator
+        await run_orchestrator(message.body, message, conv, wa)
 
     except Exception as e:
         logger.error(f"Error handling message: {e}", exc_info=True)
@@ -86,7 +53,7 @@ Respond with a JSON object with "thinking" and "actions" fields."""
         try:
             await wa.send_text(
                 message.from_number,
-                "Désolé, une erreur s'est produite. Réessayez dans un moment."
+                "Dsole, kayn mochkil. 3awed jarreb men ba3d."
             )
         except Exception as send_err:
             print(f"[ORCHESTRATOR] ALSO FAILED to send error message: {send_err}")
@@ -94,13 +61,79 @@ Respond with a JSON object with "thinking" and "actions" fields."""
         conv.close()
 
 
-async def handle_media_message(message: IncomingMessage, conv: ConversationManager, wa):
-    """Handle uploaded images/documents — extract CV data."""
-    await wa.send_text(message.from_number,
-                       "📄 J'ai reçu votre document. Je l'analyse en ce moment...")
+async def run_orchestrator(user_text: str, message: IncomingMessage, conv: ConversationManager, wa):
+    """Build context, call Claude, parse and execute actions."""
+    context = conv.get_context_summary()
+    history = conv.get_claude_messages()
 
+    orchestrator_input = f"""CONTEXT:
+{context}
+
+CONVERSATION HISTORY (last messages):
+{json.dumps(history[-10:], ensure_ascii=False)}
+
+NEW USER MESSAGE: {user_text}
+
+Decide what to do. Respond with a JSON object with "thinking" and "actions" fields."""
+
+    print("[ORCHESTRATOR] Calling Claude API...")
+    response = await chat(
+        system=ORCHESTRATOR_SYSTEM,
+        messages=[{"role": "user", "content": orchestrator_input}],
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=4096,
+        temperature=0.3,
+    )
+    print(f"[ORCHESTRATOR] Claude responded ({len(response)} chars): {response[:200]}")
+
+    actions = parse_orchestrator_response(response)
+    print(f"[ORCHESTRATOR] Parsed {len(actions)} actions: {[a.get('type') for a in actions]}")
+
+    await execute_actions(actions, conv, wa, message)
+    print(f"[ORCHESTRATOR] All actions executed successfully")
+
+
+async def handle_media_message(message: IncomingMessage, conv: ConversationManager, wa):
+    """Handle uploaded media — voice notes, images, documents."""
     for url, mtype in zip(message.media_urls, message.media_types):
-        if mtype.startswith("image/") or mtype == "application/pdf":
+        base_type = mtype.split(";")[0].strip()
+
+        # ─── Voice notes ───
+        if base_type.startswith("audio/"):
+            print(f"[MEDIA] Voice note detected: {mtype}")
+            try:
+                media_data, content_type = await download_twilio_media(url)
+                print(f"[MEDIA] Downloaded {len(media_data)} bytes of audio")
+
+                transcribed = await asyncio.to_thread(transcribe_audio, media_data, content_type)
+
+                if transcribed:
+                    print(f"[MEDIA] Transcribed voice: {transcribed[:100]}")
+                    # Record the transcription as the user's message
+                    conv.add_user_message(f"[voice] {transcribed}")
+
+                    # Process through orchestrator like a normal text message
+                    await run_orchestrator(transcribed, message, conv, wa)
+                else:
+                    await wa.send_text(
+                        message.from_number,
+                        "Ma fhemtch l-voice note. 3awed siftou wla kteb message."
+                    )
+            except Exception as e:
+                print(f"[MEDIA] Voice processing error: {e}")
+                logger.error(f"Voice processing error: {e}", exc_info=True)
+                await wa.send_text(
+                    message.from_number,
+                    "Ma qdrtech nqra l-voice note. Jarreb tkteb l-message."
+                )
+            return
+
+        # ─── Images and PDFs ───
+        if base_type.startswith("image/") or base_type == "application/pdf":
+            print(f"[MEDIA] Document/image detected: {mtype}")
+            await wa.send_text(message.from_number,
+                               "Weslat l-photo dyalk. Kanhllelha daba...")
+
             try:
                 media_data, content_type = await download_twilio_media(url)
                 extracted = await asyncio.to_thread(extract_cv_from_image, media_data, content_type)
@@ -108,13 +141,13 @@ async def handle_media_message(message: IncomingMessage, conv: ConversationManag
                 if extracted and extracted.get("full_name"):
                     conv.set_collected_data(extracted)
                     conv.set_task("cv_from_upload")
+                    conv.add_user_message("[uploaded CV document]")
 
                     summary = format_extracted_summary(extracted)
                     await wa.send_text(
                         message.from_number,
-                        f"✅ *J'ai extrait les informations suivantes:*\n\n{summary}\n\n"
-                        f"Je vais maintenant créer un CV professionnel amélioré pour vous. "
-                        f"Un moment... ⏳"
+                        f"Lqit had l-ma3loumat:\n\n{summary}\n\n"
+                        f"Daba ghadi ndir lik CV professionnel. Stenna chwiya..."
                     )
 
                     # Auto-enhance and generate
@@ -132,28 +165,32 @@ async def handle_media_message(message: IncomingMessage, conv: ConversationManag
                                 db.close()
 
                             conv.add_assistant_message("CV generated from uploaded document")
-                            await wa.send_document(
-                                message.from_number,
-                                filename,
-                                "🎉 *Voilà votre nouveau CV professionnel!*\n\n"
-                                "J'ai amélioré la présentation et reformulé vos expériences. "
-                                "Voulez-vous que je cherche des offres d'emploi qui correspondent à votre profil?"
-                            )
+                            await send_cv_to_user(wa, message.from_number, filename,
+                                                  "Ha CV dyalk l-jdid! Tl3 zwin.")
                             conv.set_task(None)
                             return
 
                     await wa.send_text(message.from_number,
-                                       "Je n'ai pas pu extraire assez d'informations. "
-                                       "Essayez une photo plus claire ou décrivez-moi votre parcours.")
+                                       "Ma lqitch ma3loumat kfaya. Jarreb tsifet photo plus claire "
+                                       "wla gouliya 3la l-experience dyalk f message.")
                 else:
                     await wa.send_text(message.from_number,
-                                       "Je n'ai pas pu lire clairement le document. "
-                                       "Envoyez une photo plus nette ou décrivez votre expérience par message.")
+                                       "Ma qdrtech nqra l-document. Sifet photo wdha wla "
+                                       "ktebli l-experience dyalk directement.")
             except Exception as e:
                 logger.error(f"Media processing error: {e}", exc_info=True)
+                print(f"[MEDIA] Processing error: {e}")
                 await wa.send_text(message.from_number,
-                                   "Désolé, je n'ai pas pu traiter ce fichier. "
-                                   "Essayez une photo plus claire ou décrivez votre parcours par message.")
+                                   "Ma qdrtech ntraite had l-fichier. "
+                                   "Jarreb photo plus claire wla kteb l-info dyalk.")
+            return
+
+        # ─── Unsupported media ───
+        print(f"[MEDIA] Unsupported media type: {mtype}")
+        await wa.send_text(
+            message.from_number,
+            "Had noo3 d l-fichier ma khdamch. Sifet photo, PDF, wla voice note."
+        )
 
 
 def parse_orchestrator_response(response: str) -> list[dict]:
@@ -172,22 +209,39 @@ def parse_orchestrator_response(response: str) -> list[dict]:
         if isinstance(data, dict):
             if "actions" in data:
                 return data["actions"]
-            # Single action
             return [data]
         elif isinstance(data, list):
             return data
         return []
 
     except json.JSONDecodeError:
-        logger.error(f"Failed to parse orchestrator response: {response[:200]}")
+        logger.error(f"Failed to parse orchestrator response: {response[:300]}")
+        print(f"[ORCHESTRATOR] JSON parse failed, raw response: {response[:300]}")
         # Fallback: treat the whole response as a message to send
         return [{"type": "send_message", "text": response}]
+
+
+async def send_cv_to_user(wa, to: str, filename: str, caption: str):
+    """Send CV PDF to user. Try document first, fallback to download link."""
+    try:
+        await wa.send_document(to, filename, caption)
+        print(f"[CV] Document sent: {filename}")
+    except Exception as e:
+        print(f"[CV] send_document failed: {e}, sending link instead")
+        from app.config import get_settings
+        base_url = get_settings().BASE_URL
+        link = f"{base_url}/cv/{filename}"
+        await wa.send_text(
+            to,
+            f"{caption}\n\nTelecharger CV dyalk mn hna:\n{link}"
+        )
 
 
 async def execute_actions(actions: list[dict], conv: ConversationManager, wa, message: IncomingMessage):
     """Execute the orchestrator's planned actions sequentially."""
     for action in actions:
         action_type = action.get("type", "")
+        print(f"[ACTION] Executing: {action_type}")
 
         try:
             if action_type == "send_message":
@@ -205,23 +259,33 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
 
             elif action_type == "generate_cv":
                 conv.set_task("cv_generating")
-                await wa.send_text(message.from_number,
-                                   "⏳ *Génération de votre CV en cours...*\n"
-                                   "Je rédige un profil professionnel, j'améliore vos descriptions "
-                                   "d'expérience et je mets en page votre CV...")
 
-                cv_data = action.get("data", conv.collected_data)
+                cv_data = action.get("data", {})
                 if not cv_data:
                     cv_data = conv.collected_data
 
-                # Merge any inline data with collected data
+                # Merge action data with previously collected data
                 merged = {**conv.collected_data, **cv_data} if cv_data else conv.collected_data
 
-                # Enhance with Claude Opus
+                if not merged or not merged.get("full_name"):
+                    await wa.send_text(message.from_number,
+                                       "Bghit n3rf smitk bach nqder ndir lik CV. Achno smitek?")
+                    conv.set_task("cv_collecting")
+                    return
+
+                # Store the merged data
+                conv.set_collected_data(merged)
+
+                # Send ONE status message
+                await wa.send_text(message.from_number, "Kandir lik CV daba... stenna chwiya")
+
+                # Enhance with Claude
                 target_job = merged.get("desired_position", merged.get("target_job"))
+                print(f"[CV] Enhancing CV data for: {merged.get('full_name')}")
                 enhanced = await asyncio.to_thread(enhance_cv_data, merged, target_job)
 
                 if enhanced:
+                    print(f"[CV] Generating PDF...")
                     filename = await asyncio.to_thread(generate_cv_pdf, enhanced)
                     if filename:
                         # Save to DB
@@ -235,39 +299,31 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
                             db.close()
 
                         conv.add_assistant_message("CV generated and sent")
-                        await wa.send_document(
-                            message.from_number,
-                            filename,
-                            "🎉 *Voilà votre CV professionnel!*\n\n"
-                            "Il a été optimisé avec un profil percutant et des descriptions "
-                            "d'expérience améliorées. Bonne chance! 💪"
+                        await send_cv_to_user(
+                            wa, message.from_number, filename,
+                            "Ha CV dyalk! Tl3 professionnel. Bonne chance!"
                         )
                         conv.set_task(None)
 
                         # Proactive: suggest job search
                         if target_job or merged.get("city"):
                             city = merged.get("city", "")
-                            sector = target_job or ""
                             await wa.send_text(
                                 message.from_number,
-                                f"💡 *Conseil:* Voulez-vous que je cherche des offres "
-                                f"d'emploi qui correspondent à votre profil"
-                                f"{' à ' + city if city else ''}? "
-                                f"Envoyez simplement \"chercher emploi\" ou le type de poste souhaité."
+                                f"Bghiti nchouf lik chi offres d'emploi"
+                                f"{' f ' + city if city else ''}? "
+                                f"Ghi goul \"chercher emploi\"."
                             )
                         return
 
                 await wa.send_text(message.from_number,
-                                   "Désolé, je n'ai pas assez d'informations pour générer le CV. "
-                                   "Pouvez-vous me donner votre nom, expérience et compétences?")
+                                   "Ma qdritch ngenerer l-CV. 3tini smitk, l-experience dyalk "
+                                   "w l-compétences dyalk bach n3awed njarreb.")
+                conv.set_task("cv_collecting")
 
             elif action_type == "search_jobs":
                 city = action.get("city", "")
                 sector = action.get("sector", "")
-                await wa.send_text(message.from_number,
-                                   f"🔍 *Recherche d'offres d'emploi"
-                                   f"{' à ' + city if city else ''}"
-                                   f"{' en ' + sector if sector else ''}...*")
 
                 results = await asyncio.to_thread(
                     search_and_rank_jobs,
@@ -286,49 +342,50 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
                 await wa.send_text(message.from_number, answer)
 
             elif action_type == "extract_cv_from_image":
-                # This is handled in handle_media_message
+                # Handled in handle_media_message
                 pass
 
             elif action_type == "tailor_cv":
                 job_id = action.get("job_id")
                 if job_id and conv.collected_data:
-                    await wa.send_text(message.from_number,
-                                       "⏳ *Optimisation de votre CV pour ce poste...*")
+                    await wa.send_text(message.from_number, "Kan-optimiser l-CV dyalk l-had l-poste...")
                     tailored = await asyncio.to_thread(tailor_cv_for_job, conv.collected_data, job_id)
                     if tailored:
                         filename = await asyncio.to_thread(generate_cv_pdf, tailored)
                         if filename:
-                            await wa.send_document(
-                                message.from_number,
-                                filename,
-                                "🎯 *CV optimisé pour ce poste!*\n"
-                                "J'ai ajusté le profil et mis en avant les compétences pertinentes."
+                            await send_cv_to_user(
+                                wa, message.from_number, filename,
+                                "Ha CV dyalk optimisé l-had l-poste!"
                             )
+
+            else:
+                print(f"[ACTION] Unknown action type: {action_type}")
 
         except Exception as e:
             logger.error(f"Error executing action {action_type}: {e}", exc_info=True)
+            print(f"[ACTION] Error in {action_type}: {e}")
 
 
 def format_extracted_summary(data: dict) -> str:
     """Format extracted CV data as a readable summary."""
     parts = []
     if data.get("full_name"):
-        parts.append(f"👤 *Nom:* {data['full_name']}")
+        parts.append(f"*Ism:* {data['full_name']}")
     if data.get("city"):
-        parts.append(f"📍 *Ville:* {data['city']}")
+        parts.append(f"*Mdina:* {data['city']}")
     if data.get("phone"):
-        parts.append(f"📱 *Tél:* {data['phone']}")
+        parts.append(f"*Tel:* {data['phone']}")
     if data.get("email"):
-        parts.append(f"📧 *Email:* {data['email']}")
+        parts.append(f"*Email:* {data['email']}")
     if data.get("experience"):
         exp_count = len(data["experience"]) if isinstance(data["experience"], list) else 1
-        parts.append(f"💼 *Expériences:* {exp_count} poste(s)")
+        parts.append(f"*Experience:* {exp_count} poste(s)")
     if data.get("education"):
         edu_count = len(data["education"]) if isinstance(data["education"], list) else 1
-        parts.append(f"🎓 *Formation:* {edu_count} diplôme(s)")
+        parts.append(f"*Formation:* {edu_count} diplome(s)")
     if data.get("skills"):
         skills = data["skills"] if isinstance(data["skills"], list) else [data["skills"]]
-        parts.append(f"🛠 *Compétences:* {', '.join(skills[:5])}")
+        parts.append(f"*Competences:* {', '.join(skills[:5])}")
     if data.get("languages"):
         langs = data["languages"]
         if isinstance(langs, list):
@@ -336,5 +393,5 @@ def format_extracted_summary(data: dict) -> str:
                 l.get("language", l) if isinstance(l, dict) else str(l)
                 for l in langs
             )
-            parts.append(f"🌍 *Langues:* {lang_str}")
-    return "\n".join(parts) if parts else "Informations limitées extraites"
+            parts.append(f"*Loghat:* {lang_str}")
+    return "\n".join(parts) if parts else "Ma3loumat limitées"

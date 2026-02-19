@@ -44,13 +44,15 @@ class WhatsAppClient:
     async def send_document(self, to: str, filename: str, caption: str = ""):
         """Send a PDF document via WhatsApp."""
         media_url = f"{self.base_url}/cv/{filename}"
-        await asyncio.to_thread(
+        print(f"[WHATSAPP] Sending document: {media_url}")
+        msg = await asyncio.to_thread(
             self.twilio.messages.create,
             from_=self.from_number,
             to=to,
             body=caption,
             media_url=[media_url],
         )
+        print(f"[WHATSAPP] Document sent, SID: {msg.sid}, status: {msg.status}")
 
     async def download_media(self, media_url: str) -> bytes:
         """Download media from a Twilio media URL."""
