@@ -3,10 +3,17 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 import logging
 import os
+import sys
 
 from app.config import get_settings
 from app.db.database import init_db
 
+# Configure logging so errors are actually visible
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    stream=sys.stdout,
+)
 logger = logging.getLogger(__name__)
 
 

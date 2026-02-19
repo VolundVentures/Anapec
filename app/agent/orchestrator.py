@@ -33,6 +33,7 @@ async def handle_incoming_message(message: IncomingMessage):
     try:
         # Record user message
         conv.add_user_message(message.body)
+        print(f"[ORCHESTRATOR] Processing message from {message.from_number}: {message.body[:80]}")
 
         # Handle media (image/document upload)
         if message.num_media > 0:
@@ -59,6 +60,7 @@ If they're asking about ANAPEC, answer. Be autonomous — chain actions when log
 Respond with a JSON object with "thinking" and "actions" fields."""
 
         # Get orchestrator decision
+        print("[ORCHESTRATOR] Calling Claude API...")
         response = await chat(
             system=ORCHESTRATOR_SYSTEM,
             messages=[{"role": "user", "content": orchestrator_input}],
@@ -66,19 +68,28 @@ Respond with a JSON object with "thinking" and "actions" fields."""
             max_tokens=4096,
             temperature=0.4,
         )
+        print(f"[ORCHESTRATOR] Claude responded ({len(response)} chars): {response[:200]}")
 
         # Parse the orchestrator's decision
         actions = parse_orchestrator_response(response)
+        print(f"[ORCHESTRATOR] Parsed {len(actions)} actions: {[a.get('type') for a in actions]}")
 
         # Execute actions
         await execute_actions(actions, conv, wa, message)
+        print(f"[ORCHESTRATOR] All actions executed successfully")
 
     except Exception as e:
         logger.error(f"Error handling message: {e}", exc_info=True)
-        await wa.send_text(
-            message.from_number,
-            "Désolé, une erreur s'est produite. Réessayez dans un moment. 🙏"
-        )
+        print(f"[ORCHESTRATOR] ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        try:
+            await wa.send_text(
+                message.from_number,
+                "Désolé, une erreur s'est produite. Réessayez dans un moment."
+            )
+        except Exception as send_err:
+            print(f"[ORCHESTRATOR] ALSO FAILED to send error message: {send_err}")
     finally:
         conv.close()
 

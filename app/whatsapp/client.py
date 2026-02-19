@@ -16,23 +16,30 @@ class WhatsAppClient:
 
     async def send_text(self, to: str, text: str):
         """Send a text message via WhatsApp."""
-        # WhatsApp has a 4096 char limit per message
-        if len(text) > 4000:
-            chunks = self._split_message(text, 4000)
-            for chunk in chunks:
-                await asyncio.to_thread(
+        print(f"[WHATSAPP] Sending to {to}: {text[:80]}...")
+        try:
+            # WhatsApp has a 4096 char limit per message
+            if len(text) > 4000:
+                chunks = self._split_message(text, 4000)
+                for chunk in chunks:
+                    msg = await asyncio.to_thread(
+                        self.twilio.messages.create,
+                        from_=self.from_number,
+                        to=to,
+                        body=chunk,
+                    )
+                    print(f"[WHATSAPP] Sent chunk, SID: {msg.sid}, status: {msg.status}")
+            else:
+                msg = await asyncio.to_thread(
                     self.twilio.messages.create,
                     from_=self.from_number,
                     to=to,
-                    body=chunk,
+                    body=text,
                 )
-        else:
-            await asyncio.to_thread(
-                self.twilio.messages.create,
-                from_=self.from_number,
-                to=to,
-                body=text,
-            )
+                print(f"[WHATSAPP] Sent, SID: {msg.sid}, status: {msg.status}")
+        except Exception as e:
+            print(f"[WHATSAPP] SEND FAILED: {e}")
+            raise
 
     async def send_document(self, to: str, filename: str, caption: str = ""):
         """Send a PDF document via WhatsApp."""

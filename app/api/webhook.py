@@ -37,6 +37,12 @@ async def twilio_webhook(request: Request, background_tasks: BackgroundTasks):
     form = await request.form()
     form_dict = dict(form)
 
+    print(f"\n{'='*60}")
+    print(f"WEBHOOK HIT — raw form keys: {list(form_dict.keys())}")
+    print(f"From: {form_dict.get('From', 'MISSING')}")
+    print(f"Body: {form_dict.get('Body', 'MISSING')[:100]}")
+    print(f"{'='*60}\n")
+
     try:
         message = parse_twilio_form(form_dict)
         logger.info(f"Received from {message.from_number}: {message.body[:100]}")
@@ -45,7 +51,8 @@ async def twilio_webhook(request: Request, background_tasks: BackgroundTasks):
         background_tasks.add_task(handle_incoming_message, message)
 
     except Exception as e:
-        logger.error(f"Error parsing webhook: {e}")
+        logger.error(f"Error parsing webhook: {e}", exc_info=True)
+        print(f"WEBHOOK PARSE ERROR: {e}")
 
     # Twilio expects a 200 with empty TwiML or plain text
     return PlainTextResponse("", status_code=200)
