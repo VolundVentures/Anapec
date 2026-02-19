@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+anapec.db
+generated_cvs/
+chroma_data/
+*.pdf
+.venv/
+venv/

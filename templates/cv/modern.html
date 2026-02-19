@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+    @page {
+        size: A4;
+        margin: 0;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 10pt;
+        line-height: 1.5;
+        color: #2D3748;
+        background: #fff;
+    }
+
+    .cv-container {
+        display: flex;
+        min-height: 297mm;
+        width: 210mm;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+        width: 72mm;
+        background: #1A365D;
+        color: #E2E8F0;
+        padding: 30pt 18pt 20pt 18pt;
+        flex-shrink: 0;
+    }
+
+    .sidebar .name {
+        font-size: 18pt;
+        font-weight: 700;
+        color: #FFFFFF;
+        letter-spacing: 0.5pt;
+        margin-bottom: 4pt;
+        line-height: 1.2;
+    }
+
+    .sidebar .title {
+        font-size: 10pt;
+        color: #63B3ED;
+        font-weight: 400;
+        text-transform: uppercase;
+        letter-spacing: 1.5pt;
+        margin-bottom: 24pt;
+        border-bottom: 1.5pt solid #2B6CB0;
+        padding-bottom: 12pt;
+    }
+
+    .sidebar-section {
+        margin-bottom: 20pt;
+    }
+
+    .sidebar-section-title {
+        font-size: 8pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2pt;
+        color: #63B3ED;
+        margin-bottom: 10pt;
+        padding-bottom: 4pt;
+        border-bottom: 0.75pt solid #2B6CB0;
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 6pt;
+        font-size: 9pt;
+    }
+
+    .contact-icon {
+        width: 14pt;
+        flex-shrink: 0;
+        margin-right: 6pt;
+        color: #63B3ED;
+        font-size: 9pt;
+    }
+
+    .contact-text {
+        color: #E2E8F0;
+        word-break: break-all;
+    }
+
+    /* Skills */
+    .skill-tag {
+        display: inline-block;
+        background: #2B6CB0;
+        color: #E2E8F0;
+        padding: 3pt 8pt;
+        border-radius: 3pt;
+        font-size: 8pt;
+        margin: 0 3pt 4pt 0;
+    }
+
+    .soft-skill {
+        background: transparent;
+        border: 0.75pt solid #4A5568;
+        color: #CBD5E0;
+    }
+
+    /* Languages */
+    .language-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6pt;
+        font-size: 9pt;
+    }
+
+    .language-name {
+        color: #E2E8F0;
+    }
+
+    .language-level {
+        color: #63B3ED;
+        font-size: 8pt;
+        font-weight: 600;
+    }
+
+    .level-bar {
+        width: 50pt;
+        height: 4pt;
+        background: #2D3748;
+        border-radius: 2pt;
+        margin-top: 3pt;
+    }
+
+    .level-fill {
+        height: 100%;
+        background: #63B3ED;
+        border-radius: 2pt;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main-content {
+        flex: 1;
+        padding: 30pt 24pt 20pt 24pt;
+    }
+
+    .section {
+        margin-bottom: 20pt;
+    }
+
+    .section-title {
+        font-size: 12pt;
+        font-weight: 700;
+        color: #1A365D;
+        text-transform: uppercase;
+        letter-spacing: 1.5pt;
+        margin-bottom: 10pt;
+        padding-bottom: 5pt;
+        border-bottom: 2pt solid #1A365D;
+    }
+
+    /* Summary */
+    .summary-text {
+        font-size: 10pt;
+        color: #4A5568;
+        line-height: 1.6;
+        font-style: italic;
+        border-left: 3pt solid #63B3ED;
+        padding-left: 12pt;
+    }
+
+    /* Experience */
+    .experience-item {
+        margin-bottom: 14pt;
+        page-break-inside: avoid;
+    }
+
+    .experience-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 3pt;
+    }
+
+    .experience-title {
+        font-size: 11pt;
+        font-weight: 700;
+        color: #1A365D;
+    }
+
+    .experience-period {
+        font-size: 8.5pt;
+        color: #718096;
+        font-weight: 600;
+        white-space: nowrap;
+        padding-left: 8pt;
+    }
+
+    .experience-company {
+        font-size: 9.5pt;
+        color: #2B6CB0;
+        font-weight: 600;
+        margin-bottom: 4pt;
+    }
+
+    .experience-descriptions {
+        list-style: none;
+        padding: 0;
+    }
+
+    .experience-descriptions li {
+        position: relative;
+        padding-left: 12pt;
+        margin-bottom: 2pt;
+        font-size: 9pt;
+        color: #4A5568;
+        line-height: 1.5;
+    }
+
+    .experience-descriptions li::before {
+        content: "▸";
+        position: absolute;
+        left: 0;
+        color: #63B3ED;
+        font-size: 8pt;
+    }
+
+    /* Education */
+    .education-item {
+        margin-bottom: 10pt;
+    }
+
+    .education-degree {
+        font-size: 10pt;
+        font-weight: 700;
+        color: #2D3748;
+    }
+
+    .education-institution {
+        font-size: 9pt;
+        color: #2B6CB0;
+    }
+
+    .education-year {
+        font-size: 8.5pt;
+        color: #718096;
+    }
+
+    /* Interests */
+    .interest-tag {
+        display: inline-block;
+        color: #4A5568;
+        font-size: 9pt;
+        margin-right: 6pt;
+    }
+
+    .interest-tag::before {
+        content: "• ";
+        color: #63B3ED;
+    }
+</style>
+</head>
+<body>
+<div class="cv-container">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="name">{{ cv.full_name }}</div>
+        <div class="title">{{ cv.desired_position }}</div>
+
+        <!-- Contact -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Contact</div>
+            {% if cv.phone %}
+            <div class="contact-item">
+                <span class="contact-icon">☎</span>
+                <span class="contact-text">{{ cv.phone }}</span>
+            </div>
+            {% endif %}
+            {% if cv.email %}
+            <div class="contact-item">
+                <span class="contact-icon">✉</span>
+                <span class="contact-text">{{ cv.email }}</span>
+            </div>
+            {% endif %}
+            {% if cv.city %}
+            <div class="contact-item">
+                <span class="contact-icon">◉</span>
+                <span class="contact-text">{{ cv.city }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Technical Skills -->
+        {% if cv.technical_skills %}
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Compétences</div>
+            {% for skill in cv.technical_skills %}
+            <span class="skill-tag">{{ skill }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Soft Skills -->
+        {% if cv.soft_skills %}
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Qualités</div>
+            {% for skill in cv.soft_skills %}
+            <span class="skill-tag soft-skill">{{ skill }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Languages -->
+        {% if cv.languages %}
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Langues</div>
+            {% for lang in cv.languages %}
+            <div class="language-item">
+                <span class="language-name">{{ lang.language }}</span>
+                <span class="language-level">{{ lang.level }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Interests -->
+        {% if cv.interests %}
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Centres d'intérêt</div>
+            {% for interest in cv.interests %}
+            <span class="interest-tag" style="color: #CBD5E0;">{{ interest }}</span><br>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- Professional Summary -->
+        {% if cv.professional_summary %}
+        <div class="section">
+            <div class="section-title">Profil</div>
+            <div class="summary-text">{{ cv.professional_summary }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Experience -->
+        {% if cv.experience %}
+        <div class="section">
+            <div class="section-title">Expérience Professionnelle</div>
+            {% for exp in cv.experience %}
+            <div class="experience-item">
+                <div class="experience-header">
+                    <span class="experience-title">{{ exp.title }}</span>
+                    {% if exp.period %}
+                    <span class="experience-period">{{ exp.period }}</span>
+                    {% endif %}
+                </div>
+                {% if exp.company %}
+                <div class="experience-company">{{ exp.company }}</div>
+                {% endif %}
+                {% if exp.descriptions %}
+                <ul class="experience-descriptions">
+                    {% for desc in exp.descriptions %}
+                    <li>{{ desc }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Education -->
+        {% if cv.education %}
+        <div class="section">
+            <div class="section-title">Formation</div>
+            {% for edu in cv.education %}
+            <div class="education-item">
+                <div class="education-degree">{{ edu.degree }}</div>
+                {% if edu.institution %}
+                <div class="education-institution">{{ edu.institution }}</div>
+                {% endif %}
+                {% if edu.year %}
+                <div class="education-year">{{ edu.year }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Interests (main area, if sidebar is too full) -->
+    </div>
+</div>
+</body>
+</html>
