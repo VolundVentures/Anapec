@@ -27,8 +27,8 @@ async def lifespan(app: FastAPI):
     # Validate critical config
     if not settings.ANTHROPIC_API_KEY:
         logger.warning("ANTHROPIC_API_KEY is not set! Claude API calls will fail.")
-    if not settings.OPENAI_API_KEY:
-        logger.warning("OPENAI_API_KEY is not set! Voice note transcription will fail.")
+    if not settings.GROQ_API_KEY:
+        logger.warning("GROQ_API_KEY is not set! Voice note transcription will fail.")
     if not settings.TWILIO_ACCOUNT_SID or not settings.TWILIO_AUTH_TOKEN:
         logger.warning("TWILIO credentials are not set! WhatsApp messages will fail.")
     if "localhost" in settings.BASE_URL:

@@ -1,4 +1,4 @@
-"""Speech-to-text using OpenAI Whisper API."""
+"""Speech-to-text using Groq Whisper API (free, fast)."""
 
 import io
 import logging
@@ -10,15 +10,18 @@ logger = logging.getLogger(__name__)
 _client = None
 
 
-def get_openai() -> OpenAI:
+def get_groq() -> OpenAI:
     global _client
     if _client is None:
-        _client = OpenAI(api_key=get_settings().OPENAI_API_KEY)
+        _client = OpenAI(
+            api_key=get_settings().GROQ_API_KEY,
+            base_url="https://api.groq.com/openai/v1",
+        )
     return _client
 
 
 def transcribe_audio(audio_bytes: bytes, content_type: str = "audio/ogg") -> str | None:
-    """Transcribe audio bytes using Whisper. Returns text or None."""
+    """Transcribe audio bytes using Whisper via Groq. Returns text or None."""
     try:
         # Map content types to file extensions Whisper expects
         ext_map = {
@@ -37,9 +40,9 @@ def transcribe_audio(audio_bytes: bytes, content_type: str = "audio/ogg") -> str
         audio_file = io.BytesIO(audio_bytes)
         audio_file.name = f"voice.{ext}"
 
-        client = get_openai()
+        client = get_groq()
         transcript = client.audio.transcriptions.create(
-            model="whisper-1",
+            model="whisper-large-v3",
             file=audio_file,
             language="ar",  # Hint: Arabic/Darija — Whisper handles French too
         )

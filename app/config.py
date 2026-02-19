@@ -7,8 +7,8 @@ class Settings(BaseSettings):
     # Anthropic
     ANTHROPIC_API_KEY: str = ""
 
-    # OpenAI (for Whisper STT)
-    OPENAI_API_KEY: str = ""
+    # Groq (for Whisper STT)
+    GROQ_API_KEY: str = ""
 
     # Twilio
     TWILIO_ACCOUNT_SID: str = ""
