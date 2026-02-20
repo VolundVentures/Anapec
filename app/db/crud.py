@@ -46,9 +46,9 @@ def update_conversation(db: Session, conv: Conversation, **kwargs) -> Conversati
 def add_message(db: Session, conv: Conversation, role: str, content: str):
     messages = list(conv.messages or [])
     messages.append({"role": role, "content": content})
-    # Keep last 30 messages
-    if len(messages) > 30:
-        messages = messages[-30:]
+    # Keep last 50 messages (coaching conversations need deep context)
+    if len(messages) > 50:
+        messages = messages[-50:]
     conv.messages = messages
     db.commit()
     db.refresh(conv)

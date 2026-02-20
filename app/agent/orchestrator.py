@@ -66,11 +66,12 @@ async def run_orchestrator(user_text: str, message: IncomingMessage, conv: Conve
 {context}
 
 CONVERSATION HISTORY (last messages):
-{json.dumps(history[-10:], ensure_ascii=False)}
+{json.dumps(history[-20:], ensure_ascii=False)}
 
 NEW USER MESSAGE: {user_text}
 
-Decide what to do. Respond with a JSON object with "thinking" and "actions" fields."""
+Decide what to do. Think about: What do I already know? What's still missing? Is the data quality good enough? What coaching moment can I create?
+Respond with a JSON object with "thinking" and "actions" fields."""
 
     print("[ORCHESTRATOR] Calling Claude API...")
     response = await chat(
