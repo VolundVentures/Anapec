@@ -1,19 +1,15 @@
 """The Brain — autonomous agent orchestrator that plans and executes actions."""
 
 import asyncio
+import base64
 import json
 import logging
 from app.whatsapp.models import IncomingMessage
 from app.whatsapp.client import get_whatsapp_client
 from app.agent.conversation import ConversationManager
 from app.agent.claude_client import chat
-from app.agent.prompts import (
-    ORCHESTRATOR_SYSTEM, INTENT_DETECTION,
-    JOB_SEARCH_EXTRACTION, JOB_RANKING_SYSTEM,
-)
-from app.cv.generator import collect_and_check_cv_data
+from app.agent.prompts import ORCHESTRATOR_SYSTEM
 from app.cv.enhancer import enhance_cv_data
-from app.cv.tailor import tailor_cv_for_job
 from app.cv.pdf import generate_cv_pdf
 from app.vision.media import download_twilio_media
 from app.vision.cv_extractor import extract_cv_from_image
@@ -109,10 +105,7 @@ async def handle_media_message(message: IncomingMessage, conv: ConversationManag
 
                 if transcribed:
                     print(f"[MEDIA] Transcribed voice: {transcribed[:100]}")
-                    # Record the transcription as the user's message
                     conv.add_user_message(f"[voice] {transcribed}")
-
-                    # Process through orchestrator like a normal text message
                     await run_orchestrator(transcribed, message, conv, wa)
                 else:
                     await wa.send_text(
@@ -131,6 +124,14 @@ async def handle_media_message(message: IncomingMessage, conv: ConversationManag
         # ─── Images and PDFs ───
         if base_type.startswith("image/") or base_type == "application/pdf":
             print(f"[MEDIA] Document/image detected: {mtype}")
+
+            # Check if this is a profile photo for an existing CV
+            if conv.current_task in ("awaiting_photo", None) and conv.collected_data.get("full_name"):
+                # User already has CV data — this is likely their profile photo
+                await handle_photo_upload(message, url, mtype, conv, wa)
+                return
+
+            # Otherwise, treat as CV document to extract from
             await wa.send_text(message.from_number,
                                "Weslat l-photo dyalk. Kanhllelha daba...")
 
@@ -147,7 +148,7 @@ async def handle_media_message(message: IncomingMessage, conv: ConversationManag
                     await wa.send_text(
                         message.from_number,
                         f"Lqit had l-ma3loumat:\n\n{summary}\n\n"
-                        f"Daba ghadi ndir lik CV professionnel. Stenna chwiya..."
+                        f"Daba ghadi ndir lik CV professionnel..."
                     )
 
                     # Auto-enhance and generate
@@ -166,8 +167,13 @@ async def handle_media_message(message: IncomingMessage, conv: ConversationManag
 
                             conv.add_assistant_message("CV generated from uploaded document")
                             await send_cv_to_user(wa, message.from_number, filename,
-                                                  "Ha CV dyalk l-jdid! Tl3 zwin.")
-                            conv.set_task(None)
+                                                  "Ha CV dyalk l-jdid!")
+                            # Suggest adding a photo
+                            await wa.send_text(
+                                message.from_number,
+                                "Bghiti tzid photo dyalk f CV? Sift liya photo professionel w nzidha lik."
+                            )
+                            conv.set_task("awaiting_photo")
                             return
 
                     await wa.send_text(message.from_number,
@@ -191,6 +197,51 @@ async def handle_media_message(message: IncomingMessage, conv: ConversationManag
             message.from_number,
             "Had noo3 d l-fichier ma khdamch. Sifet photo, PDF, wla voice note."
         )
+
+
+async def handle_photo_upload(message: IncomingMessage, url: str, mtype: str,
+                               conv: ConversationManager, wa):
+    """Handle a profile photo upload — add to existing CV and regenerate."""
+    try:
+        await wa.send_text(message.from_number, "Weslat l-photo! Kanzidha f CV dyalk...")
+
+        media_data, content_type = await download_twilio_media(url)
+        photo_b64 = base64.b64encode(media_data).decode("utf-8")
+
+        # Add photo to collected data
+        collected = conv.collected_data
+        collected["photo_b64"] = photo_b64
+        conv.set_collected_data(collected)
+
+        # Re-enhance and regenerate with photo
+        enhanced = await asyncio.to_thread(enhance_cv_data, collected)
+        if enhanced:
+            enhanced["photo_b64"] = photo_b64
+            theme = collected.get("theme")
+            filename = await asyncio.to_thread(generate_cv_pdf, enhanced, "modern", theme)
+            if filename:
+                db = SessionLocal()
+                try:
+                    user = crud.get_or_create_user(db, message.from_number)
+                    crud.save_generated_cv(db, user.id, collected, enhanced, None, filename)
+                finally:
+                    db.close()
+
+                conv.add_user_message("[uploaded profile photo]")
+                conv.add_assistant_message("CV regenerated with photo")
+                await send_cv_to_user(wa, message.from_number, filename,
+                                      "Ha CV dyalk m3a photo! Tl3 professionnel.")
+                conv.set_task(None)
+                return
+
+        await wa.send_text(message.from_number,
+                           "Ma qdrtech nzid l-photo. Jarreb photo khra wla sift liya wa7da plus claire.")
+
+    except Exception as e:
+        logger.error(f"Photo upload error: {e}", exc_info=True)
+        print(f"[PHOTO] Error: {e}")
+        await wa.send_text(message.from_number,
+                           "Kayn mochkil m3a l-photo. 3awed siftha.")
 
 
 def parse_orchestrator_response(response: str) -> list[dict]:
@@ -217,7 +268,6 @@ def parse_orchestrator_response(response: str) -> list[dict]:
     except json.JSONDecodeError:
         logger.error(f"Failed to parse orchestrator response: {response[:300]}")
         print(f"[ORCHESTRATOR] JSON parse failed, raw response: {response[:300]}")
-        # Fallback: treat the whole response as a message to send
         return [{"type": "send_message", "text": response}]
 
 
@@ -261,11 +311,13 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
                 conv.set_task("cv_generating")
 
                 cv_data = action.get("data", {})
+                theme = action.get("theme", "blue")
                 if not cv_data:
                     cv_data = conv.collected_data
 
                 # Merge action data with previously collected data
                 merged = {**conv.collected_data, **cv_data} if cv_data else conv.collected_data
+                merged["theme"] = theme
 
                 if not merged or not merged.get("full_name"):
                     await wa.send_text(message.from_number,
@@ -276,7 +328,7 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
                 # Store the merged data
                 conv.set_collected_data(merged)
 
-                # Send ONE status message
+                # Send status
                 await wa.send_text(message.from_number, "Kandir lik CV daba... stenna chwiya")
 
                 # Enhance with Claude
@@ -285,8 +337,12 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
                 enhanced = await asyncio.to_thread(enhance_cv_data, merged, target_job)
 
                 if enhanced:
-                    print(f"[CV] Generating PDF...")
-                    filename = await asyncio.to_thread(generate_cv_pdf, enhanced)
+                    # Preserve photo if it exists
+                    if merged.get("photo_b64"):
+                        enhanced["photo_b64"] = merged["photo_b64"]
+
+                    print(f"[CV] Generating PDF (theme: {theme})...")
+                    filename = await asyncio.to_thread(generate_cv_pdf, enhanced, "modern", theme)
                     if filename:
                         # Save to DB
                         db = SessionLocal()
@@ -301,19 +357,9 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
                         conv.add_assistant_message("CV generated and sent")
                         await send_cv_to_user(
                             wa, message.from_number, filename,
-                            "Ha CV dyalk! Tl3 professionnel. Bonne chance!"
+                            "Ha CV dyalk! Tl3 professionnel."
                         )
-                        conv.set_task(None)
-
-                        # Proactive: suggest job search
-                        if target_job or merged.get("city"):
-                            city = merged.get("city", "")
-                            await wa.send_text(
-                                message.from_number,
-                                f"Bghiti nchouf lik chi offres d'emploi"
-                                f"{' f ' + city if city else ''}? "
-                                f"Ghi goul \"chercher emploi\"."
-                            )
+                        conv.set_task("awaiting_photo")
                         return
 
                 await wa.send_text(message.from_number,
@@ -321,13 +367,64 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
                                    "w l-compétences dyalk bach n3awed njarreb.")
                 conv.set_task("cv_collecting")
 
+            elif action_type == "restyle_cv":
+                theme = action.get("theme", "blue")
+                collected = conv.collected_data
+
+                if not collected or not collected.get("full_name"):
+                    await wa.send_text(message.from_number,
+                                       "Mazal ma3ndek CV. Bghiti ndir lik wa7ed?")
+                    return
+
+                await wa.send_text(message.from_number, "Kanbddel l-style dyal CV dyalk...")
+
+                collected["theme"] = theme
+                conv.set_collected_data(collected)
+
+                # Re-enhance and regenerate
+                target_job = collected.get("desired_position", collected.get("target_job"))
+                enhanced = await asyncio.to_thread(enhance_cv_data, collected, target_job)
+
+                if enhanced:
+                    if collected.get("photo_b64"):
+                        enhanced["photo_b64"] = collected["photo_b64"]
+
+                    filename = await asyncio.to_thread(generate_cv_pdf, enhanced, "modern", theme)
+                    if filename:
+                        db = SessionLocal()
+                        try:
+                            user = crud.get_or_create_user(db, message.from_number)
+                            crud.save_generated_cv(
+                                db, user.id, collected, enhanced, target_job, filename
+                            )
+                        finally:
+                            db.close()
+
+                        conv.add_assistant_message(f"CV restyled with {theme} theme")
+                        await send_cv_to_user(
+                            wa, message.from_number, filename,
+                            "Ha CV dyalk b-style jdid!"
+                        )
+                        return
+
+                await wa.send_text(message.from_number,
+                                   "Ma qdrtech nbddel l-style. 3awed jarreb.")
+
+            elif action_type == "ask_for_photo":
+                conv.set_task("awaiting_photo")
+                text = action.get("text",
+                    "Bghiti tzid photo dyalk f CV? Sift liya photo professionel w nzidha lik!")
+                conv.add_assistant_message(text)
+                await wa.send_text(message.from_number, text)
+
             elif action_type == "search_jobs":
                 city = action.get("city", "")
                 sector = action.get("sector", "")
+                query = action.get("query", message.body)
 
                 results = await asyncio.to_thread(
                     search_and_rank_jobs,
-                    query=message.body,
+                    query=query,
                     city=city,
                     sector=sector,
                     user_profile=conv.user_profile,
@@ -341,17 +438,17 @@ async def execute_actions(actions: list[dict], conv: ConversationManager, wa, me
                 conv.add_assistant_message(answer)
                 await wa.send_text(message.from_number, answer)
 
-            elif action_type == "extract_cv_from_image":
-                # Handled in handle_media_message
-                pass
-
             elif action_type == "tailor_cv":
+                from app.cv.tailor import tailor_cv_for_job
                 job_id = action.get("job_id")
                 if job_id and conv.collected_data:
                     await wa.send_text(message.from_number, "Kan-optimiser l-CV dyalk l-had l-poste...")
                     tailored = await asyncio.to_thread(tailor_cv_for_job, conv.collected_data, job_id)
                     if tailored:
-                        filename = await asyncio.to_thread(generate_cv_pdf, tailored)
+                        if conv.collected_data.get("photo_b64"):
+                            tailored["photo_b64"] = conv.collected_data["photo_b64"]
+                        theme = conv.collected_data.get("theme")
+                        filename = await asyncio.to_thread(generate_cv_pdf, tailored, "modern", theme)
                         if filename:
                             await send_cv_to_user(
                                 wa, message.from_number, filename,
