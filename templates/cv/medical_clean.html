@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+    :root {
+        --sidebar-bg: {{ theme.sidebar_bg | default('#1A365D') }};
+        --sidebar-text: {{ theme.sidebar_text | default('#E2E8F0') }};
+        --accent: {{ theme.accent | default('#63B3ED') }};
+        --accent-bg: {{ theme.accent_bg | default('#2B6CB0') }};
+        --heading-color: {{ theme.heading_color | default('#1A365D') }};
+        --body-text: {{ theme.body_text | default('#2D3748') }};
+        --muted-text: {{ theme.muted_text | default('#4A5568') }};
+        --light-text: {{ theme.light_text | default('#718096') }};
+        --border-dark: {{ theme.border_dark | default('#2B6CB0') }};
+        --soft-border: {{ theme.soft_border | default('#4A5568') }};
+        --soft-text: {{ theme.soft_text | default('#CBD5E0') }};
+    }
+
+    @page { size: A4; margin: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 10pt;
+        line-height: 1.45;
+        color: var(--body-text);
+        background: #fff;
+    }
+
+    .page {
+        width: 210mm;
+        min-height: 297mm;
+        overflow: hidden;
+    }
+
+    /* ===== TWO-COLUMN: LEFT CONTACT/SKILLS, RIGHT MAIN ===== */
+    .col-left {
+        float: left;
+        width: 66mm;
+        min-height: 297mm;
+        background: #F7FAFC;
+        border-right: 1.5pt solid #E2E8F0;
+        padding: 0;
+    }
+
+    .col-right {
+        margin-left: 66mm;
+        min-height: 297mm;
+        padding: 24pt 22pt 16pt 22pt;
+    }
+
+    /* ===== LEFT COLUMN ===== */
+    .left-header {
+        background: var(--sidebar-bg);
+        color: #fff;
+        padding: 24pt 14pt 18pt 14pt;
+        text-align: center;
+    }
+
+    .left-photo {
+        width: 74pt;
+        height: 74pt;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2.5pt solid var(--accent);
+        margin-bottom: 10pt;
+    }
+
+    .left-name {
+        font-size: 14pt;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 3pt;
+    }
+
+    .left-title {
+        font-size: 8.5pt;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 1pt;
+        font-weight: 500;
+    }
+
+    .left-body {
+        padding: 16pt 14pt 14pt 14pt;
+    }
+
+    .left-section {
+        margin-bottom: 14pt;
+    }
+
+    .left-heading {
+        font-size: 7.5pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.5pt;
+        color: var(--heading-color);
+        margin-bottom: 6pt;
+        padding-bottom: 3pt;
+        border-bottom: 1pt solid #CBD5E0;
+    }
+
+    /* Contact */
+    .lc-row {
+        margin-bottom: 5pt;
+        font-size: 8.5pt;
+        color: var(--body-text);
+    }
+
+    .lc-row .ic {
+        display: inline-block;
+        width: 12pt;
+        color: var(--accent-bg);
+        font-size: 8pt;
+    }
+
+    /* Skills */
+    .left-skill {
+        display: inline-block;
+        background: var(--heading-color);
+        color: #fff;
+        padding: 2pt 6pt;
+        border-radius: 2pt;
+        font-size: 7pt;
+        font-weight: 500;
+        margin: 0 2pt 3pt 0;
+    }
+
+    .left-skill.soft {
+        background: transparent;
+        border: 0.75pt solid var(--heading-color);
+        color: var(--heading-color);
+    }
+
+    /* Languages in left col */
+    .left-lang {
+        margin-bottom: 5pt;
+    }
+
+    .left-lang-name {
+        font-size: 8.5pt;
+        color: var(--body-text);
+        font-weight: 600;
+    }
+
+    .left-lang-level {
+        font-size: 7.5pt;
+        color: var(--light-text);
+    }
+
+    .left-lang-context {
+        font-size: 7pt;
+        color: var(--accent-bg);
+        font-style: italic;
+    }
+
+    /* License */
+    .left-license {
+        display: inline-block;
+        background: var(--accent-bg);
+        color: #fff;
+        padding: 3pt 10pt;
+        border-radius: 3pt;
+        font-size: 8pt;
+        font-weight: 600;
+    }
+
+    /* Interests */
+    .left-interest {
+        font-size: 8pt;
+        color: var(--muted-text);
+        margin-bottom: 2pt;
+    }
+
+    .left-interest::before {
+        content: "\25CB ";
+        color: var(--accent-bg);
+        font-size: 7pt;
+    }
+
+    /* Tools */
+    .left-tool {
+        display: inline-block;
+        background: #EBF8FF;
+        color: var(--accent-bg);
+        padding: 1.5pt 5pt;
+        border-radius: 2pt;
+        font-size: 7pt;
+        font-weight: 600;
+        margin: 0 2pt 3pt 0;
+    }
+
+    /* ===== RIGHT COLUMN ===== */
+    .section {
+        margin-bottom: 15pt;
+        page-break-inside: avoid;
+    }
+
+    .section-title {
+        font-size: 10.5pt;
+        font-weight: 700;
+        color: var(--heading-color);
+        text-transform: uppercase;
+        letter-spacing: 1.2pt;
+        margin-bottom: 8pt;
+        padding-bottom: 4pt;
+        border-bottom: 2pt solid var(--heading-color);
+    }
+
+    .section-title .line {
+        display: block;
+        width: 30pt;
+        height: 2pt;
+        background: var(--accent);
+        margin-top: 2pt;
+    }
+
+    /* Summary */
+    .summary {
+        font-size: 9.5pt;
+        color: var(--muted-text);
+        line-height: 1.55;
+        font-style: italic;
+        border-left: 3pt solid var(--accent);
+        padding-left: 10pt;
+    }
+
+    /* Education */
+    .edu-item {
+        margin-bottom: 9pt;
+        page-break-inside: avoid;
+    }
+
+    .edu-top {
+        display: table;
+        width: 100%;
+    }
+
+    .edu-degree {
+        display: table-cell;
+        font-size: 10pt;
+        font-weight: 700;
+        color: var(--heading-color);
+    }
+
+    .edu-year {
+        display: table-cell;
+        text-align: right;
+        font-size: 8pt;
+        color: var(--light-text);
+        font-weight: 600;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .edu-institution {
+        font-size: 9pt;
+        color: var(--accent-bg);
+        font-weight: 600;
+    }
+
+    /* Certifications */
+    .cert-item {
+        margin-bottom: 6pt;
+        page-break-inside: avoid;
+    }
+
+    .cert-top {
+        display: table;
+        width: 100%;
+    }
+
+    .cert-name {
+        display: table-cell;
+        font-size: 9.5pt;
+        font-weight: 600;
+        color: var(--body-text);
+    }
+
+    .cert-year {
+        display: table-cell;
+        text-align: right;
+        font-size: 8pt;
+        color: var(--light-text);
+        font-weight: 600;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .cert-issuer {
+        font-size: 8.5pt;
+        color: var(--light-text);
+    }
+
+    /* Experience */
+    .exp-item {
+        margin-bottom: 12pt;
+        page-break-inside: avoid;
+    }
+
+    .exp-top {
+        display: table;
+        width: 100%;
+    }
+
+    .exp-title {
+        display: table-cell;
+        font-size: 10pt;
+        font-weight: 700;
+        color: var(--heading-color);
+    }
+
+    .exp-period {
+        display: table-cell;
+        text-align: right;
+        font-size: 8pt;
+        color: var(--light-text);
+        font-weight: 600;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .exp-company {
+        font-size: 9pt;
+        color: var(--accent-bg);
+        font-weight: 600;
+        margin-bottom: 3pt;
+    }
+
+    .exp-desc {
+        list-style: none;
+        padding: 0;
+    }
+
+    .exp-desc li {
+        padding-left: 10pt;
+        position: relative;
+        font-size: 8.5pt;
+        color: var(--muted-text);
+        margin-bottom: 2pt;
+        line-height: 1.45;
+    }
+
+    .exp-desc li::before {
+        content: "\2014";
+        position: absolute;
+        left: 0;
+        color: var(--accent);
+        font-size: 8pt;
+    }
+
+    /* Projects / Research */
+    .proj-item {
+        margin-bottom: 8pt;
+        page-break-inside: avoid;
+    }
+
+    .proj-name {
+        font-size: 9.5pt;
+        font-weight: 700;
+        color: var(--heading-color);
+    }
+
+    .proj-desc {
+        font-size: 8.5pt;
+        color: var(--muted-text);
+        line-height: 1.4;
+    }
+
+    .proj-tech {
+        margin-top: 2pt;
+    }
+
+    .proj-tech span {
+        display: inline-block;
+        background: #F7FAFC;
+        border: 0.5pt solid #CBD5E0;
+        color: var(--muted-text);
+        padding: 1pt 5pt;
+        border-radius: 2pt;
+        font-size: 7pt;
+        margin-right: 2pt;
+    }
+
+    /* Achievements */
+    .achiev-item {
+        margin-bottom: 6pt;
+    }
+
+    .achiev-title {
+        font-size: 9pt;
+        font-weight: 700;
+        color: var(--heading-color);
+    }
+
+    .achiev-desc {
+        font-size: 8.5pt;
+        color: var(--muted-text);
+    }
+
+    .achiev-metric {
+        font-size: 7.5pt;
+        color: var(--accent-bg);
+        font-weight: 600;
+    }
+
+    /* Extracurricular */
+    .extra-item {
+        margin-bottom: 5pt;
+    }
+
+    .extra-name {
+        font-size: 9pt;
+        font-weight: 600;
+        color: var(--body-text);
+    }
+
+    .extra-desc {
+        font-size: 8pt;
+        color: var(--muted-text);
+    }
+</style>
+</head>
+<body>
+<div class="page">
+    <!-- LEFT COLUMN -->
+    <div class="col-left">
+        <div class="left-header">
+            {% if cv.photo_b64 %}
+            <img class="left-photo" src="data:image/jpeg;base64,{{ cv.photo_b64 }}" alt="Photo">
+            <br>
+            {% endif %}
+            <div class="left-name">{{ cv.full_name }}</div>
+            {% if cv.desired_position %}
+            <div class="left-title">{{ cv.desired_position }}</div>
+            {% endif %}
+        </div>
+
+        <div class="left-body">
+            <!-- Contact -->
+            <div class="left-section">
+                <div class="left-heading">Contact</div>
+                {% if cv.phone %}
+                <div class="lc-row"><span class="ic">&#9742;</span> {{ cv.phone }}</div>
+                {% endif %}
+                {% if cv.email %}
+                <div class="lc-row"><span class="ic">&#9993;</span> {{ cv.email }}</div>
+                {% endif %}
+                {% if cv.city %}
+                <div class="lc-row"><span class="ic">&#9673;</span> {{ cv.city }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Technical Skills -->
+            {% if cv.technical_skills %}
+            <div class="left-section">
+                <div class="left-heading">Comp&eacute;tences Cliniques</div>
+                {% for skill in cv.technical_skills %}
+                <span class="left-skill">{{ skill }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Soft Skills -->
+            {% if cv.soft_skills %}
+            <div class="left-section">
+                <div class="left-heading">Qualit&eacute;s</div>
+                {% for skill in cv.soft_skills %}
+                <span class="left-skill soft">{{ skill }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Tools / Equipment -->
+            {% if cv.tools_equipment %}
+            <div class="left-section">
+                <div class="left-heading">&Eacute;quipements</div>
+                {% for tool in cv.tools_equipment %}
+                <span class="left-tool">{{ tool }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Languages -->
+            {% if cv.languages %}
+            <div class="left-section">
+                <div class="left-heading">Langues</div>
+                {% for lang in cv.languages %}
+                <div class="left-lang">
+                    <div><span class="left-lang-name">{{ lang.language }}</span> <span class="left-lang-level">{{ lang.level }}</span></div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Driving License -->
+            {% if cv.driving_license %}
+            <div class="left-section">
+                <div class="left-heading">Permis de Conduire</div>
+                <span class="left-license">{{ cv.driving_license }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Interests -->
+            {% if cv.interests %}
+            <div class="left-section">
+                <div class="left-heading">Centres d'int&eacute;r&ecirc;t</div>
+                {% for interest in cv.interests %}
+                <div class="left-interest">{{ interest }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN - MAIN CONTENT -->
+    <div class="col-right">
+        <!-- Summary -->
+        {% if cv.professional_summary %}
+        <div class="section">
+            <div class="section-title">Profil Professionnel<span class="line"></span></div>
+            <div class="summary">{{ cv.professional_summary }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Education (premium placement) -->
+        {% if cv.education %}
+        <div class="section">
+            <div class="section-title">Formation<span class="line"></span></div>
+            {% for edu in cv.education %}
+            <div class="edu-item">
+                <div class="edu-top">
+                    <span class="edu-degree">{{ edu.degree }}</span>
+                    {% if edu.year %}<span class="edu-year">{{ edu.year }}</span>{% endif %}
+                </div>
+                {% if edu.institution %}<div class="edu-institution">{{ edu.institution }}</div>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Certifications (premium placement) -->
+        {% if cv.certifications %}
+        <div class="section">
+            <div class="section-title">Certifications &amp; Dipl&ocirc;mes Compl&eacute;mentaires<span class="line"></span></div>
+            {% for cert in cv.certifications %}
+            <div class="cert-item">
+                <div class="cert-top">
+                    <span class="cert-name">{{ cert.name }}</span>
+                    {% if cert.year %}<span class="cert-year">{{ cert.year }}</span>{% endif %}
+                </div>
+                {% if cert.issuer %}<div class="cert-issuer">{{ cert.issuer }}</div>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Experience -->
+        {% if cv.experience %}
+        <div class="section">
+            <div class="section-title">Exp&eacute;rience Professionnelle<span class="line"></span></div>
+            {% for exp in cv.experience %}
+            <div class="exp-item">
+                <div class="exp-top">
+                    <span class="exp-title">{{ exp.title }}</span>
+                    {% if exp.period %}<span class="exp-period">{{ exp.period }}</span>{% endif %}
+                </div>
+                {% if exp.company %}<div class="exp-company">{{ exp.company }}</div>{% endif %}
+                {% if exp.descriptions %}
+                <ul class="exp-desc">
+                    {% for d in exp.descriptions %}<li>{{ d }}</li>{% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Research / Projects -->
+        {% if cv.projects %}
+        <div class="section">
+            <div class="section-title">Recherche &amp; Publications<span class="line"></span></div>
+            {% for proj in cv.projects %}
+            <div class="proj-item">
+                <div class="proj-name">{{ proj.name }}</div>
+                {% if proj.description %}<div class="proj-desc">{{ proj.description }}</div>{% endif %}
+                {% if proj.technologies %}
+                <div class="proj-tech">
+                    {% for t in proj.technologies %}<span>{{ t }}</span>{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Achievements -->
+        {% if cv.achievements %}
+        <div class="section">
+            <div class="section-title">R&eacute;alisations<span class="line"></span></div>
+            {% for ach in cv.achievements %}
+            <div class="achiev-item">
+                <div class="achiev-title">{{ ach.title }}</div>
+                {% if ach.description %}<div class="achiev-desc">{{ ach.description }}</div>{% endif %}
+                {% if ach.metric %}<div class="achiev-metric">{{ ach.metric }}</div>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Extracurricular / Memberships -->
+        {% if cv.extracurricular %}
+        <div class="section">
+            <div class="section-title">Activit&eacute;s Professionnelles<span class="line"></span></div>
+            {% for act in cv.extracurricular %}
+            <div class="extra-item">
+                <div class="extra-name">{{ act.activity }}</div>
+                {% if act.description %}<div class="extra-desc">{{ act.description }}</div>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

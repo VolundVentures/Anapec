@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     # Groq (for Whisper STT)
     GROQ_API_KEY: str = ""
 
+    # Google (for Gemini TTS)
+    GOOGLE_API_KEY: str = ""
+
     # Twilio
     TWILIO_ACCOUNT_SID: str = ""
     TWILIO_AUTH_TOKEN: str = ""
@@ -19,8 +22,14 @@ class Settings(BaseSettings):
     BASE_URL: str = "http://localhost:8000"
     DATABASE_URL: str = "sqlite:///./anapec.db"
 
+    # Message aggregation
+    MESSAGE_AGGREGATION_DELAY_MS: int = 3000
+    TWILIO_SESSION_CHAR_LIMIT: int = 4096
+
     # Paths
     GENERATED_CVS_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "generated_cvs")
+    GENERATED_AUDIO_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "generated_audio")
+    GENERATED_REPORTS_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "generated_reports")
     TEMPLATES_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
     DATA_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 

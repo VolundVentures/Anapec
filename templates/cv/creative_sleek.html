@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+    :root {
+        --sidebar-bg: {{ theme.sidebar_bg | default('#1A365D') }};
+        --sidebar-text: {{ theme.sidebar_text | default('#E2E8F0') }};
+        --accent: {{ theme.accent | default('#63B3ED') }};
+        --accent-bg: {{ theme.accent_bg | default('#2B6CB0') }};
+        --heading-color: {{ theme.heading_color | default('#1A365D') }};
+        --body-text: {{ theme.body_text | default('#2D3748') }};
+        --muted-text: {{ theme.muted_text | default('#4A5568') }};
+        --light-text: {{ theme.light_text | default('#718096') }};
+        --border-dark: {{ theme.border_dark | default('#2B6CB0') }};
+        --soft-border: {{ theme.soft_border | default('#4A5568') }};
+        --soft-text: {{ theme.soft_text | default('#CBD5E0') }};
+    }
+
+    @page { size: A4; margin: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 9.5pt; line-height: 1.5;
+        color: var(--body-text); background: #fff;
+    }
+
+    .page { width: 210mm; min-height: 297mm; overflow: hidden; }
+
+    /* ===== DARK SIDEBAR ===== */
+    .wrap { overflow: hidden; }
+    .sidebar {
+        float: left; width: 74mm;
+        background: var(--sidebar-bg);
+        color: var(--sidebar-text);
+        min-height: 297mm;
+        padding: 28pt 16pt 20pt;
+        position: relative;
+    }
+    /* Subtle geometric decoration */
+    .sidebar::before {
+        content: ""; position: absolute;
+        top: 0; right: 0;
+        width: 0; height: 0;
+        border-style: solid;
+        border-width: 0 50pt 50pt 0;
+        border-color: transparent var(--accent-bg) transparent transparent;
+        opacity: 0.15;
+    }
+    .sidebar::after {
+        content: ""; position: absolute;
+        bottom: 40pt; left: 16pt;
+        width: 40pt; height: 40pt;
+        border: 2pt solid var(--accent);
+        opacity: 0.12; border-radius: 50%;
+    }
+
+    .main {
+        float: right; width: 136mm;
+        padding: 28pt 24pt 20pt;
+        min-height: 297mm;
+    }
+
+    /* ===== SIDEBAR CONTENT ===== */
+    .sb-photo-area { text-align: center; margin-bottom: 16pt; }
+    .sb-photo {
+        width: 82pt; height: 82pt; border-radius: 50%;
+        object-fit: cover; border: 3pt solid var(--accent);
+    }
+    .sb-name {
+        font-size: 16pt; font-weight: 800; color: #fff;
+        text-align: center; line-height: 1.15;
+        margin-bottom: 3pt;
+    }
+    .sb-title {
+        font-size: 8.5pt; color: var(--accent);
+        text-transform: uppercase; letter-spacing: 2pt;
+        text-align: center; margin-bottom: 18pt;
+        padding-bottom: 12pt;
+        border-bottom: 1pt solid var(--border-dark);
+    }
+
+    .sb-section { margin-bottom: 16pt; }
+    .sb-section-title {
+        font-size: 7.5pt; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 2pt; color: var(--accent);
+        margin-bottom: 8pt; padding-bottom: 3pt;
+        border-bottom: 0.5pt solid var(--border-dark);
+    }
+
+    /* Contact items */
+    .sb-contact-item { margin-bottom: 5pt; font-size: 8.5pt; overflow: hidden; }
+    .sb-ci-icon { float: left; width: 16pt; color: var(--accent); text-align: center; }
+    .sb-ci-text { float: left; width: calc(100% - 20pt); color: var(--sidebar-text); word-break: break-all; }
+
+    /* Circular progress indicators for skills */
+    .skill-progress-list { }
+    .skill-progress-item { overflow: hidden; margin-bottom: 8pt; }
+    .sp-circle-wrap { float: left; width: 32pt; height: 32pt; position: relative; margin-right: 8pt; }
+    .sp-circle-bg {
+        position: absolute; top: 0; left: 0;
+    }
+    .sp-label {
+        float: left; width: calc(100% - 42pt); padding-top: 6pt;
+        font-size: 8pt; color: var(--sidebar-text);
+    }
+
+    /* Skill tags (fallback without SVG circles for simple list) */
+    .sb-skill-tag {
+        display: inline-block; background: var(--accent-bg);
+        color: var(--sidebar-text); padding: 2pt 7pt;
+        border-radius: 2pt; font-size: 7.5pt;
+        margin: 0 2pt 3pt 0;
+    }
+    .sb-soft-tag {
+        display: inline-block; background: transparent;
+        border: 0.75pt solid var(--soft-border);
+        color: var(--soft-text); padding: 2pt 7pt;
+        border-radius: 2pt; font-size: 7.5pt;
+        margin: 0 2pt 3pt 0;
+    }
+
+    /* Languages */
+    .sb-lang-item { margin-bottom: 5pt; }
+    .sb-lang-name { font-size: 8.5pt; color: var(--sidebar-text); font-weight: 600; }
+    .sb-lang-level { font-size: 7pt; color: var(--accent); }
+    .sb-lang-bar { height: 3pt; background: var(--border-dark); border-radius: 2pt; margin-top: 2pt; }
+    .sb-lang-fill { height: 100%; background: var(--accent); border-radius: 2pt; }
+
+    /* Interests with icons */
+    .sb-interest { font-size: 8pt; color: var(--soft-text); padding: 2pt 0; }
+    .sb-interest::before { content: "\25CB "; color: var(--accent); font-size: 7pt; }
+
+    /* ===== MAIN CONTENT ===== */
+    .section { margin-bottom: 18pt; page-break-inside: avoid; }
+    .section-title {
+        font-size: 11pt; font-weight: 300; color: var(--heading-color);
+        text-transform: uppercase; letter-spacing: 3pt;
+        margin-bottom: 10pt; padding-bottom: 5pt;
+        border-bottom: 1pt solid #e2e6ea;
+        position: relative;
+    }
+    .section-title::after {
+        content: ""; position: absolute; bottom: -1pt; left: 0;
+        width: 30pt; height: 2.5pt; background: var(--accent);
+    }
+
+    /* Summary */
+    .summary {
+        font-size: 9.5pt; color: var(--muted-text);
+        line-height: 1.6; font-style: italic;
+        padding: 10pt 0 10pt 14pt;
+        border-left: 3pt solid var(--accent);
+    }
+
+    /* Experience with creative markers */
+    .exp-item { margin-bottom: 12pt; page-break-inside: avoid; position: relative; }
+    .exp-marker {
+        position: absolute; left: -12pt; top: 3pt;
+        width: 6pt; height: 6pt;
+        border: 2pt solid var(--accent);
+        border-radius: 50%;
+    }
+    .exp-header { overflow: hidden; margin-bottom: 2pt; }
+    .exp-title { float: left; font-size: 10.5pt; font-weight: 700; color: var(--heading-color); }
+    .exp-period { float: right; font-size: 7.5pt; color: var(--light-text); font-weight: 600; padding-top: 3pt; }
+    .exp-company { font-size: 9pt; color: var(--accent-bg); font-weight: 600; margin-bottom: 3pt; }
+    .exp-desc { list-style: none; padding: 0; }
+    .exp-desc li {
+        font-size: 8.5pt; color: var(--muted-text);
+        padding-left: 10pt; position: relative; margin-bottom: 1.5pt;
+    }
+    .exp-desc li::before {
+        content: "\2192"; position: absolute; left: 0;
+        color: var(--accent); font-size: 8pt;
+    }
+
+    /* Education with branding space */
+    .edu-item {
+        overflow: hidden; margin-bottom: 10pt;
+        padding: 8pt 0; border-bottom: 0.5pt dotted #e2e6ea;
+        page-break-inside: avoid;
+    }
+    .edu-item:last-child { border-bottom: none; }
+    .edu-icon-area { float: left; width: 28pt; padding-top: 2pt; }
+    .edu-icon {
+        width: 22pt; height: 22pt; background: var(--accent);
+        border-radius: 4pt; text-align: center;
+        line-height: 22pt; color: #fff; font-size: 11pt;
+    }
+    .edu-text { float: left; width: calc(100% - 32pt); }
+    .edu-degree { font-size: 10pt; font-weight: 700; color: var(--body-text); }
+    .edu-inst { font-size: 8.5pt; color: var(--accent-bg); }
+    .edu-year { font-size: 7.5pt; color: var(--light-text); }
+
+    /* Projects */
+    .project-item {
+        margin-bottom: 8pt; page-break-inside: avoid;
+        padding: 8pt 10pt; background: #f8f9fb;
+        border-radius: 4pt; border-left: 3pt solid var(--accent);
+    }
+    .proj-name { font-size: 9.5pt; font-weight: 700; color: var(--heading-color); }
+    .proj-desc { font-size: 8pt; color: var(--muted-text); line-height: 1.45; margin-top: 2pt; }
+    .proj-tech {
+        display: inline-block; font-size: 6.5pt; font-weight: 700;
+        background: var(--sidebar-bg); color: var(--sidebar-text);
+        padding: 1pt 5pt; border-radius: 2pt;
+        margin: 3pt 2pt 0 0;
+    }
+
+    /* Achievements */
+    .ach-item { margin-bottom: 6pt; }
+    .ach-title { font-size: 9pt; font-weight: 700; color: var(--heading-color); }
+    .ach-desc { font-size: 8pt; color: var(--muted-text); }
+    .ach-metric { font-size: 7.5pt; color: var(--accent-bg); font-weight: 600; }
+
+    /* Certifications */
+    .cert-inline {
+        display: inline-block; background: #f0f4f8;
+        padding: 3pt 8pt; border-radius: 3pt;
+        font-size: 8pt; color: var(--heading-color);
+        margin: 0 4pt 4pt 0; border: 1pt solid #e2e6ea;
+    }
+
+    /* Extracurricular */
+    .extra-item { margin-bottom: 5pt; }
+    .extra-act { font-size: 9pt; font-weight: 700; color: var(--heading-color); }
+    .extra-desc { font-size: 8pt; color: var(--muted-text); }
+
+    .clearfix::after { content: ""; display: table; clear: both; }
+</style>
+</head>
+<body>
+<div class="page">
+    <div class="wrap clearfix">
+        <!-- DARK SIDEBAR -->
+        <div class="sidebar">
+            <!-- Photo -->
+            {% if cv.photo_b64 %}
+            <div class="sb-photo-area">
+                <img class="sb-photo" src="data:image/jpeg;base64,{{ cv.photo_b64 }}" alt="Photo">
+            </div>
+            {% endif %}
+
+            <div class="sb-name">{{ cv.full_name }}</div>
+            <div class="sb-title">{{ cv.desired_position }}</div>
+
+            <!-- Contact -->
+            <div class="sb-section">
+                <div class="sb-section-title">Contact</div>
+                {% if cv.phone %}
+                <div class="sb-contact-item clearfix">
+                    <span class="sb-ci-icon">&#9742;</span>
+                    <span class="sb-ci-text">{{ cv.phone }}</span>
+                </div>
+                {% endif %}
+                {% if cv.email %}
+                <div class="sb-contact-item clearfix">
+                    <span class="sb-ci-icon">&#9993;</span>
+                    <span class="sb-ci-text">{{ cv.email }}</span>
+                </div>
+                {% endif %}
+                {% if cv.city %}
+                <div class="sb-contact-item clearfix">
+                    <span class="sb-ci-icon">&#9673;</span>
+                    <span class="sb-ci-text">{{ cv.city }}</span>
+                </div>
+                {% endif %}
+                {% if cv.driving_license %}
+                <div class="sb-contact-item clearfix">
+                    <span class="sb-ci-icon">&#9951;</span>
+                    <span class="sb-ci-text">Permis {{ cv.driving_license }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Skills with circular SVG progress -->
+            {% if cv.technical_skills %}
+            <div class="sb-section">
+                <div class="sb-section-title">Comp&eacute;tences</div>
+                {% for skill in cv.technical_skills %}
+                <div class="skill-progress-item clearfix">
+                    <div class="sp-circle-wrap">
+                        <svg width="32" height="32" viewBox="0 0 36 36" class="sp-circle-bg">
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                  fill="none" stroke="{{ theme.border_dark | default('#2B6CB0') }}" stroke-width="3" />
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                  fill="none" stroke="{{ theme.accent | default('#63B3ED') }}" stroke-width="3"
+                                  stroke-dasharray="{% if loop.index % 5 == 1 %}90, 100{% elif loop.index % 5 == 2 %}80, 100{% elif loop.index % 5 == 3 %}70, 100{% elif loop.index % 5 == 4 %}85, 100{% else %}75, 100{% endif %}"
+                                  stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <div class="sp-label">{{ skill }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Soft Skills -->
+            {% if cv.soft_skills %}
+            <div class="sb-section">
+                <div class="sb-section-title">Qualit&eacute;s</div>
+                {% for skill in cv.soft_skills %}
+                <span class="sb-soft-tag">{{ skill }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Languages -->
+            {% if cv.languages %}
+            <div class="sb-section">
+                <div class="sb-section-title">Langues</div>
+                {% for lang in cv.languages %}
+                <div class="sb-lang-item">
+                    <span class="sb-lang-name">{{ lang.language }}</span>
+                    <span class="sb-lang-level">{{ lang.level }}</span>
+                    <div class="sb-lang-bar">
+                        <div class="sb-lang-fill" style="width: {% if lang.level in ['Natif', 'Maternelle', 'Native', 'natif', 'maternelle'] %}100%{% elif lang.level in ['Courant', 'Fluent', 'C2', 'C1', 'courant'] %}85%{% elif lang.level in ['Avancé', 'Advanced', 'B2', 'avancé'] %}70%{% elif lang.level in ['Intermédiaire', 'Intermediate', 'B1', 'intermédiaire'] %}55%{% elif lang.level in ['Élémentaire', 'Elementary', 'A2', 'A1', 'élémentaire', 'Basique', 'basique'] %}35%{% else %}50%{% endif %};"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Tools -->
+            {% if cv.tools_equipment %}
+            <div class="sb-section">
+                <div class="sb-section-title">Logiciels &amp; Outils</div>
+                {% for tool in cv.tools_equipment %}
+                <span class="sb-skill-tag">{{ tool }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Interests -->
+            {% if cv.interests %}
+            <div class="sb-section">
+                <div class="sb-section-title">Int&eacute;r&ecirc;ts</div>
+                {% for interest in cv.interests %}
+                <div class="sb-interest">{{ interest }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main">
+            <!-- Summary -->
+            {% if cv.professional_summary %}
+            <div class="section">
+                <div class="section-title">Profil</div>
+                <div class="summary">{{ cv.professional_summary }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Experience -->
+            {% if cv.experience %}
+            <div class="section">
+                <div class="section-title">Exp&eacute;rience</div>
+                {% for exp in cv.experience %}
+                <div class="exp-item" style="padding-left:14pt;">
+                    <div class="exp-marker"></div>
+                    <div class="exp-header clearfix">
+                        <span class="exp-title">{{ exp.title }}</span>
+                        {% if exp.period %}<span class="exp-period">{{ exp.period }}</span>{% endif %}
+                    </div>
+                    {% if exp.company %}<div class="exp-company">{{ exp.company }}</div>{% endif %}
+                    {% if exp.descriptions %}
+                    <ul class="exp-desc">
+                        {% for desc in exp.descriptions %}<li>{{ desc }}</li>{% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Education -->
+            {% if cv.education %}
+            <div class="section">
+                <div class="section-title">Formation</div>
+                {% for edu in cv.education %}
+                <div class="edu-item clearfix">
+                    <div class="edu-icon-area">
+                        <div class="edu-icon">&#9733;</div>
+                    </div>
+                    <div class="edu-text">
+                        <div class="edu-degree">{{ edu.degree }}</div>
+                        {% if edu.institution %}<div class="edu-inst">{{ edu.institution }}</div>{% endif %}
+                        {% if edu.year %}<div class="edu-year">{{ edu.year }}</div>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Projects -->
+            {% if cv.projects %}
+            <div class="section">
+                <div class="section-title">Projets</div>
+                {% for proj in cv.projects %}
+                <div class="project-item">
+                    <div class="proj-name">{{ proj.name }}</div>
+                    {% if proj.description %}<div class="proj-desc">{{ proj.description }}</div>{% endif %}
+                    {% if proj.technologies %}
+                    {% for tech in proj.technologies %}
+                    <span class="proj-tech">{{ tech }}</span>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Certifications -->
+            {% if cv.certifications %}
+            <div class="section">
+                <div class="section-title">Certifications</div>
+                {% for cert in cv.certifications %}
+                <span class="cert-inline">{{ cert.name }}{% if cert.year %} ({{ cert.year }}){% endif %}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Achievements -->
+            {% if cv.achievements %}
+            <div class="section">
+                <div class="section-title">R&eacute;alisations</div>
+                {% for ach in cv.achievements %}
+                <div class="ach-item">
+                    <div class="ach-title">{{ ach.title }}</div>
+                    {% if ach.description %}<div class="ach-desc">{{ ach.description }}</div>{% endif %}
+                    {% if ach.metric %}<div class="ach-metric">{{ ach.metric }}</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Extracurricular -->
+            {% if cv.extracurricular %}
+            <div class="section">
+                <div class="section-title">Activit&eacute;s</div>
+                {% for act in cv.extracurricular %}
+                <div class="extra-item">
+                    <div class="extra-act">{{ act.activity }}</div>
+                    {% if act.description %}<div class="extra-desc">{{ act.description }}</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Bilan des Competences — {{ data.user_name }}</title>
+<style>
+    /* ═══════════════════════════════════════════════════════
+       GLOBAL & PAGE SETUP
+       ═══════════════════════════════════════════════════════ */
+    @page {
+        size: A4;
+        margin: 18mm 16mm 20mm 16mm;
+
+        @bottom-center {
+            content: "Bilan des Competences — " "{{ data.assessment_id }}" " — Page " counter(page) "/" counter(pages);
+            font-size: 7pt;
+            color: #A0AEC0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+    }
+
+    @page :first {
+        margin-top: 0;
+        margin-bottom: 20mm;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 9.5pt;
+        line-height: 1.55;
+        color: #2D3748;
+        background: #fff;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       COVER / HEADER (first page)
+       ═══════════════════════════════════════════════════════ */
+    .cover {
+        background: linear-gradient(135deg, #1A365D 0%, #2B4C7E 50%, #1A365D 100%);
+        background-color: #1A365D; /* WeasyPrint fallback */
+        color: #fff;
+        padding: 48pt 40pt 36pt 40pt;
+        margin: 0 -16mm;
+        margin-top: 0;
+        page-break-after: avoid;
+    }
+
+    .cover-top {
+        width: 100%;
+        overflow: hidden;
+        margin-bottom: 24pt;
+    }
+
+    .cover-logo {
+        float: left;
+        width: 50%;
+    }
+
+    .cover-meta {
+        float: right;
+        text-align: right;
+        width: 50%;
+    }
+
+    .cover-logo-text {
+        font-size: 10pt;
+        font-weight: 700;
+        letter-spacing: 3pt;
+        text-transform: uppercase;
+        color: #63B3ED;
+    }
+
+    .cover-logo-sub {
+        font-size: 7.5pt;
+        color: #A0AEC0;
+        letter-spacing: 1pt;
+        margin-top: 2pt;
+    }
+
+    .cover-meta-line {
+        font-size: 8pt;
+        color: #CBD5E0;
+        margin-bottom: 2pt;
+    }
+
+    .cover-title {
+        font-size: 26pt;
+        font-weight: 700;
+        letter-spacing: 1pt;
+        margin-bottom: 6pt;
+        line-height: 1.2;
+        clear: both;
+    }
+
+    .cover-subtitle {
+        font-size: 12pt;
+        font-weight: 300;
+        color: #90CDF4;
+        margin-bottom: 24pt;
+        letter-spacing: 0.5pt;
+    }
+
+    .cover-divider {
+        width: 80pt;
+        height: 3pt;
+        background: #63B3ED;
+        margin-bottom: 20pt;
+    }
+
+    .cover-user {
+        font-size: 18pt;
+        font-weight: 600;
+        margin-bottom: 4pt;
+    }
+
+    .cover-user-detail {
+        font-size: 9pt;
+        color: #CBD5E0;
+    }
+
+    .clearfix::after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       SECTION HEADINGS
+       ═══════════════════════════════════════════════════════ */
+    .section {
+        margin-bottom: 18pt;
+        page-break-inside: avoid;
+    }
+
+    .section-header {
+        margin-bottom: 12pt;
+        padding-bottom: 6pt;
+        border-bottom: 2pt solid #1A365D;
+    }
+
+    .section-number {
+        display: inline-block;
+        background: #1A365D;
+        color: #fff;
+        width: 22pt;
+        height: 22pt;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 22pt;
+        font-size: 10pt;
+        font-weight: 700;
+        margin-right: 8pt;
+        vertical-align: middle;
+    }
+
+    .section-title {
+        display: inline;
+        font-size: 14pt;
+        font-weight: 700;
+        color: #1A365D;
+        text-transform: uppercase;
+        letter-spacing: 1pt;
+        vertical-align: middle;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       SCORE OVERVIEW BAR
+       ═══════════════════════════════════════════════════════ */
+    .score-overview {
+        width: 100%;
+        overflow: hidden;
+        background: #F7FAFC;
+        border: 1pt solid #E2E8F0;
+        border-radius: 4pt;
+        padding: 16pt 20pt;
+        margin-bottom: 18pt;
+        page-break-inside: avoid;
+    }
+
+    .score-overview-left {
+        float: left;
+        width: 65%;
+    }
+
+    .score-overview-right {
+        float: right;
+        width: 30%;
+        text-align: center;
+    }
+
+    .score-label {
+        font-size: 8pt;
+        text-transform: uppercase;
+        letter-spacing: 1.5pt;
+        color: #718096;
+        margin-bottom: 4pt;
+    }
+
+    .score-value {
+        font-size: 36pt;
+        font-weight: 700;
+        color: #1A365D;
+        line-height: 1;
+    }
+
+    .score-max {
+        font-size: 14pt;
+        font-weight: 400;
+        color: #A0AEC0;
+    }
+
+    .score-bar-bg {
+        width: 100%;
+        height: 8pt;
+        background: #E2E8F0;
+        border-radius: 4pt;
+        margin-top: 10pt;
+    }
+
+    .score-bar-fill {
+        height: 100%;
+        border-radius: 4pt;
+        background: #1A365D;
+    }
+
+    .score-category {
+        font-size: 11pt;
+        font-weight: 600;
+        color: #2B4C7E;
+        margin-top: 6pt;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       RADAR CHART
+       ═══════════════════════════════════════════════════════ */
+    .radar-section {
+        text-align: center;
+        margin-bottom: 14pt;
+        page-break-inside: avoid;
+    }
+
+    .radar-chart-container {
+        display: inline-block;
+        width: 320pt;
+    }
+
+    .radar-chart-container svg {
+        width: 100%;
+        height: auto;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       COMPETENCY TABLE
+       ═══════════════════════════════════════════════════════ */
+    .comp-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 14pt;
+        font-size: 8.5pt;
+    }
+
+    .comp-table th {
+        background: #1A365D;
+        color: #fff;
+        padding: 6pt 8pt;
+        text-align: left;
+        font-weight: 600;
+        font-size: 7.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5pt;
+    }
+
+    .comp-table td {
+        padding: 6pt 8pt;
+        border-bottom: 0.5pt solid #E2E8F0;
+        vertical-align: top;
+    }
+
+    .comp-table tr:nth-child(even) td {
+        background: #F7FAFC;
+    }
+
+    .comp-name {
+        font-weight: 600;
+        color: #2D3748;
+        white-space: nowrap;
+    }
+
+    .comp-score-cell {
+        text-align: center;
+        width: 45pt;
+    }
+
+    .comp-score-badge {
+        display: inline-block;
+        width: 28pt;
+        height: 28pt;
+        border-radius: 50%;
+        line-height: 28pt;
+        text-align: center;
+        font-weight: 700;
+        font-size: 10pt;
+        color: #fff;
+    }
+
+    .badge-high { background: #276749; }
+    .badge-mid  { background: #C05621; }
+    .badge-low  { background: #9B2C2C; }
+
+    .comp-bar-cell {
+        width: 100pt;
+    }
+
+    .comp-bar-bg {
+        width: 100%;
+        height: 6pt;
+        background: #E2E8F0;
+        border-radius: 3pt;
+    }
+
+    .comp-bar-fill {
+        height: 100%;
+        border-radius: 3pt;
+    }
+
+    .bar-high { background: #276749; }
+    .bar-mid  { background: #C05621; }
+    .bar-low  { background: #9B2C2C; }
+
+    .comp-evidence {
+        font-size: 7.5pt;
+        color: #718096;
+        font-style: italic;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       NARRATIVE SECTIONS
+       ═══════════════════════════════════════════════════════ */
+    .narrative-text {
+        font-size: 9.5pt;
+        color: #2D3748;
+        line-height: 1.65;
+        text-align: justify;
+        margin-bottom: 10pt;
+    }
+
+    .summary-box {
+        background: #EBF8FF;
+        border-left: 4pt solid #1A365D;
+        padding: 12pt 16pt;
+        margin-bottom: 14pt;
+        page-break-inside: avoid;
+    }
+
+    .summary-box p {
+        margin-bottom: 6pt;
+        font-size: 9.5pt;
+        line-height: 1.6;
+    }
+
+    .summary-box p:last-child {
+        margin-bottom: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       STRENGTHS & DEVELOPMENT BOXES
+       ═══════════════════════════════════════════════════════ */
+    .two-col {
+        width: 100%;
+        overflow: hidden;
+        margin-bottom: 14pt;
+    }
+
+    .col-left {
+        float: left;
+        width: 48%;
+    }
+
+    .col-right {
+        float: right;
+        width: 48%;
+    }
+
+    .highlight-box {
+        border-radius: 4pt;
+        padding: 12pt 14pt;
+        margin-bottom: 10pt;
+        page-break-inside: avoid;
+    }
+
+    .highlight-box-green {
+        background: #F0FFF4;
+        border: 1pt solid #C6F6D5;
+    }
+
+    .highlight-box-orange {
+        background: #FFFAF0;
+        border: 1pt solid #FEEBC8;
+    }
+
+    .highlight-box-title {
+        font-size: 9pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1pt;
+        margin-bottom: 8pt;
+    }
+
+    .highlight-box-green .highlight-box-title { color: #276749; }
+    .highlight-box-orange .highlight-box-title { color: #C05621; }
+
+    .highlight-item {
+        margin-bottom: 5pt;
+        font-size: 8.5pt;
+        line-height: 1.5;
+    }
+
+    .highlight-score {
+        display: inline-block;
+        font-weight: 700;
+        width: 18pt;
+        text-align: right;
+        margin-right: 6pt;
+    }
+
+    .highlight-box-green .highlight-score { color: #276749; }
+    .highlight-box-orange .highlight-score { color: #C05621; }
+
+    /* ═══════════════════════════════════════════════════════
+       BULLET LISTS
+       ═══════════════════════════════════════════════════════ */
+    .bullet-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 10pt 0;
+    }
+
+    .bullet-list li {
+        position: relative;
+        padding-left: 16pt;
+        margin-bottom: 5pt;
+        font-size: 9pt;
+        line-height: 1.55;
+    }
+
+    .bullet-list li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 5pt;
+        width: 6pt;
+        height: 6pt;
+        background: #1A365D;
+        border-radius: 50%;
+    }
+
+    .bullet-list-accent li::before {
+        background: #2B6CB0;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       NUMBERED LIST (Recommendations)
+       ═══════════════════════════════════════════════════════ */
+    .rec-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 10pt 0;
+        counter-reset: rec-counter;
+    }
+
+    .rec-list li {
+        position: relative;
+        padding-left: 28pt;
+        margin-bottom: 8pt;
+        font-size: 9pt;
+        line-height: 1.55;
+        counter-increment: rec-counter;
+    }
+
+    .rec-list li::before {
+        content: counter(rec-counter);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 20pt;
+        height: 20pt;
+        background: #1A365D;
+        color: #fff;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 20pt;
+        font-size: 8pt;
+        font-weight: 700;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       PROJECT BOX
+       ═══════════════════════════════════════════════════════ */
+    .project-box {
+        background: #1A365D;
+        color: #fff;
+        padding: 18pt 20pt;
+        border-radius: 4pt;
+        margin-bottom: 14pt;
+        page-break-inside: avoid;
+    }
+
+    .project-box-title {
+        font-size: 11pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1pt;
+        color: #63B3ED;
+        margin-bottom: 10pt;
+    }
+
+    .project-box p {
+        font-size: 9.5pt;
+        line-height: 1.65;
+        color: #E2E8F0;
+        margin-bottom: 6pt;
+    }
+
+    .project-box p:last-child {
+        margin-bottom: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       FOOTER / DISCLAIMER
+       ═══════════════════════════════════════════════════════ */
+    .report-footer {
+        margin-top: 20pt;
+        padding-top: 10pt;
+        border-top: 1pt solid #E2E8F0;
+        font-size: 7pt;
+        color: #A0AEC0;
+        text-align: center;
+        line-height: 1.6;
+    }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     COVER SECTION
+     ═══════════════════════════════════════════════════════ -->
+<div class="cover">
+    <div class="cover-top clearfix">
+        <div class="cover-logo">
+            <div class="cover-logo-text">ANAPEC AI</div>
+            <div class="cover-logo-sub">Intelligence Artificielle au Service de l'Emploi</div>
+        </div>
+        <div class="cover-meta">
+            <div class="cover-meta-line">Reference: {{ data.assessment_id }}</div>
+            <div class="cover-meta-line">Date: {{ data.report_date }}</div>
+        </div>
+    </div>
+
+    <div class="cover-title">Bilan des Competences</div>
+    <div class="cover-subtitle">Rapport d'Evaluation Personnalise</div>
+    <div class="cover-divider"></div>
+    <div class="cover-user">{{ data.user_name }}</div>
+    {% if data.user_city %}
+    <div class="cover-user-detail">{{ data.user_city }}</div>
+    {% endif %}
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 1: SYNTHESE GENERALE
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+    <div class="section-header">
+        <span class="section-number">1</span>
+        <span class="section-title">Synthese Generale</span>
+    </div>
+
+    <!-- Overall Score -->
+    <div class="score-overview clearfix">
+        <div class="score-overview-left">
+            <div class="score-label">Score Global</div>
+            <div class="score-value">{{ data.overall_score }}<span class="score-max">/10</span></div>
+            <div class="score-bar-bg">
+                <div class="score-bar-fill" style="width: {{ (data.overall_score * 10)|int }}%;"></div>
+            </div>
+            <div class="score-category">
+                {% if data.overall_score >= 8 %}
+                    Profil Excellent
+                {% elif data.overall_score >= 6.5 %}
+                    Profil Solide
+                {% elif data.overall_score >= 5 %}
+                    Profil Prometteur
+                {% else %}
+                    Profil en Developpement
+                {% endif %}
+            </div>
+        </div>
+        <div class="score-overview-right">
+            <div class="score-label">Competences Evaluees</div>
+            <div style="font-size: 28pt; font-weight: 700; color: #2B4C7E; line-height: 1.2;">12</div>
+            <div style="font-size: 8pt; color: #718096;">domaines</div>
+        </div>
+    </div>
+
+    <!-- Narrative Summary -->
+    <div class="summary-box">
+        {% for para in data.synthese.split('\n') %}
+            {% if para.strip() %}
+            <p>{{ para.strip() }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 2: CARTOGRAPHIE DES COMPETENCES
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+    <div class="section-header">
+        <span class="section-number">2</span>
+        <span class="section-title">Cartographie des Competences</span>
+    </div>
+
+    <!-- Radar Chart -->
+    <div class="radar-section">
+        {{ data.radar_svg }}
+    </div>
+
+    <!-- Competency Table -->
+    <table class="comp-table">
+        <thead>
+            <tr>
+                <th>Competence</th>
+                <th style="text-align: center;">Score</th>
+                <th>Niveau</th>
+                <th>Justification</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for domain in data.scored_domains %}
+            <tr>
+                <td class="comp-name">{{ domain.name }}</td>
+                <td class="comp-score-cell">
+                    <span class="comp-score-badge {% if domain.score >= 7 %}badge-high{% elif domain.score >= 5 %}badge-mid{% else %}badge-low{% endif %}">
+                        {{ domain.score }}
+                    </span>
+                </td>
+                <td class="comp-bar-cell">
+                    <div class="comp-bar-bg">
+                        <div class="comp-bar-fill {% if domain.score >= 7 %}bar-high{% elif domain.score >= 5 %}bar-mid{% else %}bar-low{% endif %}"
+                             style="width: {{ (domain.score * 10)|int }}%;"></div>
+                    </div>
+                </td>
+                <td class="comp-evidence">{{ domain.evidence }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 3: POINTS FORTS & AXES DE DEVELOPPEMENT
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+    <div class="section-header">
+        <span class="section-number">3</span>
+        <span class="section-title">Points Forts et Axes de Developpement</span>
+    </div>
+
+    <div class="two-col clearfix">
+        <!-- Strengths -->
+        <div class="col-left">
+            <div class="highlight-box highlight-box-green">
+                <div class="highlight-box-title">Points Forts</div>
+                {% if data.top_strengths %}
+                    {% for s in data.top_strengths %}
+                    <div class="highlight-item">
+                        <span class="highlight-score">{{ s.score }}/10</span>
+                        {{ s.name }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Development Areas -->
+        <div class="col-right">
+            <div class="highlight-box highlight-box-orange">
+                <div class="highlight-box-title">Axes de Developpement</div>
+                {% if data.dev_areas %}
+                    {% for d in data.dev_areas %}
+                    <div class="highlight-item">
+                        <span class="highlight-score">{{ d.score }}/10</span>
+                        {{ d.name }}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="highlight-item">Aucun axe critique identifie.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Key competencies narrative -->
+    {% if data.competences_cles %}
+    <div style="margin-bottom: 10pt;">
+        <div style="font-size: 9pt; font-weight: 700; color: #1A365D; text-transform: uppercase; letter-spacing: 1pt; margin-bottom: 6pt;">
+            Competences Cles Identifiees
+        </div>
+        <ul class="bullet-list">
+            {% for comp in data.competences_cles %}
+            <li>{{ comp }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Development narrative -->
+    {% if data.axes_developpement %}
+    <div style="margin-bottom: 10pt;">
+        <div style="font-size: 9pt; font-weight: 700; color: #C05621; text-transform: uppercase; letter-spacing: 1pt; margin-bottom: 6pt;">
+            Recommandations de Developpement
+        </div>
+        <ul class="bullet-list bullet-list-accent">
+            {% for axe in data.axes_developpement %}
+            <li>{{ axe }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 4: POSITIONNEMENT MARCHE
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+    <div class="section-header">
+        <span class="section-number">4</span>
+        <span class="section-title">Positionnement sur le Marche</span>
+    </div>
+
+    <div class="narrative-text">
+        {% for para in data.positionnement.split('\n') %}
+            {% if para.strip() %}
+            <p style="margin-bottom: 8pt;">{{ para.strip() }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 5: RECOMMANDATIONS
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+    <div class="section-header">
+        <span class="section-number">5</span>
+        <span class="section-title">Recommandations</span>
+    </div>
+
+    {% if data.recommandations %}
+    <ol class="rec-list">
+        {% for rec in data.recommandations %}
+        <li>{{ rec }}</li>
+        {% endfor %}
+    </ol>
+    {% endif %}
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 6: PROJET PROFESSIONNEL
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+    <div class="section-header">
+        <span class="section-number">6</span>
+        <span class="section-title">Projet Professionnel</span>
+    </div>
+
+    <div class="project-box">
+        <div class="project-box-title">Direction Suggeree</div>
+        {% for para in data.projet_professionnel.split('\n') %}
+            {% if para.strip() %}
+            <p>{{ para.strip() }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     FOOTER
+     ═══════════════════════════════════════════════════════ -->
+<div class="report-footer">
+    Ce rapport a ete genere automatiquement par ANAPEC AI sur la base d'un entretien structure de Bilan des Competences.<br>
+    Il constitue un outil d'aide a la reflexion et ne saurait se substituer a un accompagnement professionnel personnalise.<br>
+    {{ data.assessment_id }} &mdash; {{ data.report_date }}
+</div>
+
+</body>
+</html>

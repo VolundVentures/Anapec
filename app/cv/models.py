@@ -20,6 +20,31 @@ class LanguageSkill(BaseModel):
     level: str = ""
 
 
+class Certification(BaseModel):
+    name: str = ""
+    issuer: str = ""
+    year: str = ""
+
+
+class Project(BaseModel):
+    name: str = ""
+    description: str = ""
+    technologies: list[str] = []
+    url: str = ""
+
+
+class Achievement(BaseModel):
+    title: str = ""
+    description: str = ""
+    metric: str = ""
+
+
+class Extracurricular(BaseModel):
+    activity: str = ""
+    role: str = ""
+    description: str = ""
+
+
 class CVData(BaseModel):
     full_name: str = ""
     phone: Optional[str] = None
@@ -33,3 +58,10 @@ class CVData(BaseModel):
     soft_skills: list[str] = []
     languages: list[LanguageSkill] = []
     interests: list[str] = []
+    driving_license: Optional[str] = None
+    extracurricular: list[Extracurricular] = []
+    certifications: list[Certification] = []
+    projects: list[Project] = []
+    tools_equipment: list[str] = []
+    achievements: list[Achievement] = []
+    industry_category: str = ""

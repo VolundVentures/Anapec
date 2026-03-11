@@ -133,16 +133,29 @@ def get_theme(theme_name: str | None = None) -> dict:
 
 def generate_cv_pdf(cv_data: dict, template_name: str = "modern",
                     theme_name: str | None = None) -> str | None:
-    """Generate a beautiful PDF CV from enhanced data. Returns filename or None."""
+    """Generate a beautiful PDF CV from enhanced data. Returns filename or None.
+
+    Supports the legacy "modern" template as well as all 18 career-specific templates.
+    If a template file does not exist, falls back to "modern".
+    """
     try:
         settings = get_settings()
         templates_dir = os.path.join(settings.TEMPLATES_DIR, "cv")
         output_dir = settings.GENERATED_CVS_DIR
         os.makedirs(output_dir, exist_ok=True)
 
-        # Load Jinja2 template
+        # Load Jinja2 template — fall back to "modern" if the requested one doesn't exist
         env = Environment(loader=FileSystemLoader(templates_dir))
-        template = env.get_template(f"{template_name}.html")
+        actual_template = template_name
+        template_file = f"{template_name}.html"
+        if not os.path.isfile(os.path.join(templates_dir, template_file)):
+            logger.warning(
+                f"Template '{template_name}' not found, falling back to 'modern'"
+            )
+            actual_template = "modern"
+            template_file = "modern.html"
+
+        template = env.get_template(template_file)
 
         # Normalize data for template
         cv = normalize_cv_data(cv_data)
@@ -160,7 +173,10 @@ def generate_cv_pdf(cv_data: dict, template_name: str = "modern",
 
         HTML(string=html_content, base_url=templates_dir).write_pdf(filepath)
 
-        logger.info(f"CV PDF generated: {filename} (theme: {resolve_theme_name(resolved)})")
+        logger.info(
+            f"CV PDF generated: {filename} "
+            f"(template: {actual_template}, theme: {resolve_theme_name(resolved)})"
+        )
         return filename
 
     except Exception as e:
@@ -169,7 +185,11 @@ def generate_cv_pdf(cv_data: dict, template_name: str = "modern",
 
 
 def normalize_cv_data(data: dict) -> dict:
-    """Ensure all expected fields exist with proper types for the template."""
+    """Ensure all expected fields exist with proper types for the template.
+
+    Handles the original fields plus: certifications, projects, tools_equipment,
+    extracurricular, driving_license, achievements, and industry_category.
+    """
     cv = {
         "full_name": data.get("full_name", ""),
         "phone": data.get("phone", ""),
@@ -184,38 +204,70 @@ def normalize_cv_data(data: dict) -> dict:
         "soft_skills": data.get("soft_skills", []),
         "languages": [],
         "interests": data.get("interests", []),
+        # New fields
+        "driving_license": data.get("driving_license", ""),
+        "certifications": [],
+        "projects": [],
+        "tools_equipment": [],
+        "extracurricular": [],
+        "achievements": [],
+        "industry_category": data.get("industry_category", ""),
     }
 
-    # Normalize skills from various formats
+    # ── Normalize skills from various formats ──
     if isinstance(cv["technical_skills"], str):
-        cv["technical_skills"] = [s.strip() for s in cv["technical_skills"].split(",")]
+        cv["technical_skills"] = [s.strip() for s in cv["technical_skills"].split(",") if s.strip()]
+    else:
+        cv["technical_skills"] = [str(s).strip() for s in cv["technical_skills"] if s and str(s).strip()]
     if isinstance(cv["soft_skills"], str):
-        cv["soft_skills"] = [s.strip() for s in cv["soft_skills"].split(",")]
+        cv["soft_skills"] = [s.strip() for s in cv["soft_skills"].split(",") if s.strip()]
+    else:
+        cv["soft_skills"] = [str(s).strip() for s in cv["soft_skills"] if s and str(s).strip()]
+    # Also filter interests
+    if isinstance(cv["interests"], str):
+        cv["interests"] = [s.strip() for s in cv["interests"].split(",") if s.strip()]
+    else:
+        cv["interests"] = [str(s).strip() for s in cv["interests"] if s and str(s).strip()]
 
-    # Normalize experience
+    # ── Normalize experience ──
     for exp in data.get("experience", []):
         if isinstance(exp, dict):
             descriptions = exp.get("descriptions", [])
             if not descriptions and exp.get("description"):
                 desc = exp["description"]
                 descriptions = [desc] if isinstance(desc, str) else desc
+            # Also handle onboarding fields: responsibilities + achievements
+            if not descriptions:
+                parts = []
+                if exp.get("responsibilities"):
+                    parts.append(exp["responsibilities"])
+                if exp.get("achievements"):
+                    parts.append(exp["achievements"])
+                if parts:
+                    descriptions = parts
             cv["experience"].append({
                 "title": exp.get("title", ""),
                 "company": exp.get("company", ""),
                 "period": exp.get("period", ""),
+                "city": exp.get("city", ""),
                 "descriptions": descriptions if isinstance(descriptions, list) else [descriptions],
             })
 
-    # Normalize education
+    # ── Normalize education ──
     for edu in data.get("education", []):
         if isinstance(edu, dict):
+            degree = edu.get("degree", edu.get("degree_name", ""))
+            field = edu.get("field_of_study", "")
+            if field and degree and field.lower() not in degree.lower():
+                degree = f"{degree} — {field}"
             cv["education"].append({
-                "degree": edu.get("degree", ""),
+                "degree": degree,
                 "institution": edu.get("institution", ""),
                 "year": edu.get("year", ""),
+                "honors": edu.get("honors", ""),
             })
 
-    # Normalize languages
+    # ── Normalize languages ──
     for lang in data.get("languages", []):
         if isinstance(lang, dict):
             cv["languages"].append({
@@ -224,5 +276,62 @@ def normalize_cv_data(data: dict) -> dict:
             })
         elif isinstance(lang, str):
             cv["languages"].append({"language": lang, "level": ""})
+
+    # ── Normalize certifications ──
+    for cert in data.get("certifications", []):
+        if isinstance(cert, dict):
+            cv["certifications"].append({
+                "name": cert.get("name", cert.get("title", "")),
+                "issuer": cert.get("issuer", cert.get("organisme", "")),
+                "year": cert.get("year", cert.get("annee", "")),
+            })
+        elif isinstance(cert, str):
+            cv["certifications"].append({"name": cert, "issuer": "", "year": ""})
+
+    # ── Normalize projects ──
+    for proj in data.get("projects", []):
+        if isinstance(proj, dict):
+            techs = proj.get("technologies", proj.get("tech", []))
+            if isinstance(techs, str):
+                techs = [t.strip() for t in techs.split(",") if t.strip()]
+            cv["projects"].append({
+                "name": proj.get("name", proj.get("titre", "")),
+                "description": proj.get("description", ""),
+                "technologies": techs if isinstance(techs, list) else [],
+                "url": proj.get("url", proj.get("link", "")),
+            })
+        elif isinstance(proj, str):
+            cv["projects"].append({"name": proj, "description": "", "technologies": [], "url": ""})
+
+    # ── Normalize tools/equipment ──
+    raw_tools = data.get("tools_equipment", [])
+    if isinstance(raw_tools, str):
+        cv["tools_equipment"] = [t.strip() for t in raw_tools.split(",") if t.strip()]
+    elif isinstance(raw_tools, list):
+        cv["tools_equipment"] = [str(t).strip() for t in raw_tools if t]
+    else:
+        cv["tools_equipment"] = []
+
+    # ── Normalize extracurricular ──
+    for activity in data.get("extracurricular", []):
+        if isinstance(activity, dict):
+            cv["extracurricular"].append({
+                "activity": activity.get("activity", activity.get("activite", activity.get("name", ""))),
+                "role": activity.get("role", activity.get("poste", "")),
+                "description": activity.get("description", ""),
+            })
+        elif isinstance(activity, str):
+            cv["extracurricular"].append({"activity": activity, "role": "", "description": ""})
+
+    # ── Normalize achievements ──
+    for ach in data.get("achievements", []):
+        if isinstance(ach, dict):
+            cv["achievements"].append({
+                "title": ach.get("title", ach.get("titre", "")),
+                "description": ach.get("description", ""),
+                "metric": ach.get("metric", ach.get("chiffre", "")),
+            })
+        elif isinstance(ach, str):
+            cv["achievements"].append({"title": ach, "description": "", "metric": ""})
 
     return cv

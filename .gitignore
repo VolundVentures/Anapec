@@ -8,3 +8,5 @@ chroma_data/
 *.pdf
 .venv/
 venv/
+cloudflared.exe
+generated_audio/

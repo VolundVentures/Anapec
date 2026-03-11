@@ -48,10 +48,10 @@ def transcribe_audio(audio_bytes: bytes, content_type: str = "audio/ogg") -> str
         )
 
         text = transcript.text.strip()
-        print(f"[STT] Transcribed: {text[:100]}")
+        logger.info(f"Transcribed: {text[:100]}")
         return text if text else None
 
     except Exception as e:
-        print(f"[STT] Transcription failed: {e}")
+        logger.error(f"Transcription failed: {e}")
         logger.error(f"Whisper transcription failed: {e}", exc_info=True)
         return None

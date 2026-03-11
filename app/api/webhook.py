@@ -3,7 +3,7 @@ from fastapi.responses import PlainTextResponse
 import logging
 
 from app.whatsapp.models import IncomingMessage
-from app.agent.orchestrator import handle_incoming_message
+from app.messaging.aggregator import buffer_and_schedule
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -33,26 +33,24 @@ def parse_twilio_form(form: dict) -> IncomingMessage:
 
 @router.post("/webhook")
 async def twilio_webhook(request: Request, background_tasks: BackgroundTasks):
-    """Receive incoming WhatsApp messages from Twilio."""
+    """Receive incoming WhatsApp messages from Twilio.
+    Uses message aggregation to handle rapid multiple messages."""
     form = await request.form()
     form_dict = dict(form)
 
-    print(f"\n{'='*60}")
-    print(f"WEBHOOK HIT — raw form keys: {list(form_dict.keys())}")
-    print(f"From: {form_dict.get('From', 'MISSING')}")
-    print(f"Body: {form_dict.get('Body', 'MISSING')[:100]}")
-    print(f"{'='*60}\n")
+    logger.info(f"WEBHOOK HIT — From: {form_dict.get('From', 'MISSING')}, "
+                f"Body: {form_dict.get('Body', '')[:100]}, "
+                f"Media: {form_dict.get('NumMedia', '0')}")
 
     try:
         message = parse_twilio_form(form_dict)
         logger.info(f"Received from {message.from_number}: {message.body[:100]}")
 
-        # Process in background so Twilio gets a fast 200
-        background_tasks.add_task(handle_incoming_message, message)
+        # Buffer and schedule with aggregation (debounce rapid messages)
+        background_tasks.add_task(buffer_and_schedule, message)
 
     except Exception as e:
         logger.error(f"Error parsing webhook: {e}", exc_info=True)
-        print(f"WEBHOOK PARSE ERROR: {e}")
+        logger.error(f"Webhook parse error: {e}")
 
-    # Twilio expects a 200 with empty TwiML or plain text
     return PlainTextResponse("", status_code=200)

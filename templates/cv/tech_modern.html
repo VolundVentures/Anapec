@@ -30,7 +30,7 @@
 
     .page { width: 210mm; min-height: 297mm; overflow: hidden; }
 
-    /* ===== SIDEBAR (float-based for WeasyPrint) ===== */
+    /* ===== SIDEBAR (same proven structure as modern.html) ===== */
     .sidebar {
         float: left;
         width: 68mm;
@@ -42,14 +42,14 @@
 
     .sidebar-header {
         text-align: center;
-        padding: 22pt 14pt 16pt 14pt;
+        padding: 20pt 14pt 14pt 14pt;
         background: var(--accent-bg);
     }
 
     .photo-wrap {
-        width: 76pt; height: 76pt;
+        width: 72pt; height: 72pt;
         border-radius: 50%; overflow: hidden;
-        margin: 0 auto 10pt auto;
+        margin: 0 auto 8pt auto;
         border: 2.5pt solid var(--accent);
     }
     .photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -59,17 +59,17 @@
         letter-spacing: 0.3pt; line-height: 1.2; margin-bottom: 3pt;
     }
     .sidebar-title {
-        font-size: 8pt; color: var(--accent);
+        font-size: 7.5pt; color: var(--accent);
         text-transform: uppercase; letter-spacing: 1.5pt; font-weight: 500;
     }
 
-    .sidebar-body { padding: 14pt 14pt 10pt 14pt; }
+    .sidebar-body { padding: 12pt 14pt 10pt 14pt; }
 
-    .sb-section { margin-bottom: 12pt; }
+    .sb-section { margin-bottom: 10pt; }
     .sb-heading {
         font-size: 7pt; font-weight: 700; text-transform: uppercase;
         letter-spacing: 1.5pt; color: var(--accent);
-        margin-bottom: 6pt; padding-bottom: 3pt;
+        margin-bottom: 5pt; padding-bottom: 3pt;
         border-bottom: 0.75pt solid var(--border-dark);
     }
 
@@ -77,23 +77,26 @@
     .contact-row .icon { display: inline-block; width: 12pt; color: var(--accent); font-size: 7.5pt; }
     .contact-row .val { color: var(--sidebar-text); word-break: break-all; }
 
+    /* Tech-style monospace pills */
     .skill-pill {
         display: inline-block; background: var(--accent-bg);
-        color: var(--sidebar-text); padding: 2pt 6pt; border-radius: 8pt;
+        color: var(--sidebar-text); padding: 2pt 6pt; border-radius: 3pt;
         font-size: 7pt; margin: 0 2pt 3pt 0; font-weight: 500;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     }
     .skill-pill.soft {
         background: transparent; border: 0.75pt solid var(--soft-border); color: var(--soft-text);
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     }
 
-    .lang-row { margin-bottom: 5pt; }
+    .lang-row { margin-bottom: 4pt; }
     .lang-name { font-size: 8pt; color: var(--sidebar-text); margin-bottom: 1pt; }
     .lang-level-text { font-size: 6.5pt; color: var(--accent); float: right; }
     .bar-track { width: 100%; height: 3pt; background: rgba(255,255,255,0.12); border-radius: 1.5pt; }
     .bar-fill { height: 100%; background: var(--accent); border-radius: 1.5pt; }
 
     .interest-item { font-size: 7.5pt; color: var(--soft-text); margin-bottom: 1pt; }
-    .interest-item::before { content: "- "; color: var(--accent); }
+    .interest-item::before { content: "// "; color: var(--accent); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
     .license-badge {
         display: inline-block; border: 0.75pt solid var(--accent);
@@ -104,16 +107,29 @@
     /* ===== MAIN CONTENT ===== */
     .main {
         margin-left: 68mm;
-        padding: 20pt 20pt 16pt 20pt;
+        padding: 18pt 20pt 14pt 20pt;
         min-height: 297mm;
     }
 
-    .section { margin-bottom: 12pt; }
+    .section { margin-bottom: 10pt; }
     .section-title {
         font-size: 10pt; font-weight: 700; color: var(--heading-color);
         text-transform: uppercase; letter-spacing: 1pt;
-        margin-bottom: 6pt; padding-bottom: 3pt;
+        margin-bottom: 5pt; padding-bottom: 3pt;
         border-bottom: 1.5pt solid var(--accent);
+    }
+    /* Tech-style code bracket accent */
+    .section-title::before {
+        content: "{ ";
+        color: var(--accent);
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 400;
+    }
+    .section-title::after {
+        content: " }";
+        color: var(--accent);
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 400;
     }
 
     .summary {
@@ -122,7 +138,7 @@
     }
 
     /* Experience */
-    .exp-item { margin-bottom: 10pt; page-break-inside: avoid; }
+    .exp-item { margin-bottom: 8pt; page-break-inside: avoid; }
     .exp-top { display: table; width: 100%; }
     .exp-title { display: table-cell; font-size: 9.5pt; font-weight: 700; color: var(--heading-color); }
     .exp-period {
@@ -136,12 +152,32 @@
         font-size: 8pt; color: var(--muted-text); line-height: 1.4;
     }
     .exp-desc li::before {
-        content: "\25B8"; position: absolute; left: 0;
-        color: var(--accent); font-size: 6.5pt; top: 1pt;
+        content: ">"; position: absolute; left: 0;
+        color: var(--accent); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 700; font-size: 7pt; top: 1pt;
+    }
+
+    /* Projects */
+    .proj-item {
+        margin-bottom: 6pt; padding: 5pt 8pt;
+        border: 0.75pt solid #E2E8F0;
+        border-left: 2.5pt solid var(--accent);
+        border-radius: 2pt;
+    }
+    .proj-name {
+        font-size: 9pt; font-weight: 700; color: var(--heading-color);
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    .proj-desc { font-size: 8pt; color: var(--muted-text); margin-top: 1pt; }
+    .proj-tech { margin-top: 3pt; }
+    .proj-tech-tag {
+        display: inline-block; background: #EDF2F7; color: var(--accent-bg);
+        padding: 1.5pt 6pt; border-radius: 2pt; font-size: 7pt;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin-right: 3pt;
     }
 
     /* Education */
-    .edu-item { margin-bottom: 7pt; page-break-inside: avoid; }
+    .edu-item { margin-bottom: 6pt; page-break-inside: avoid; }
     .edu-top { display: table; width: 100%; }
     .edu-degree { display: table-cell; font-size: 9pt; font-weight: 700; color: var(--heading-color); }
     .edu-year {
@@ -149,17 +185,28 @@
         color: var(--light-text); font-weight: 600; white-space: nowrap; vertical-align: middle;
     }
     .edu-institution { font-size: 8pt; color: var(--accent-bg); font-weight: 600; margin-top: 1pt; }
-    .edu-honors { font-size: 7.5pt; color: var(--accent-bg); font-weight: 600; }
 
     /* Certifications */
     .cert-item { margin-bottom: 4pt; }
     .cert-name { font-size: 8.5pt; font-weight: 600; color: var(--body-text); }
     .cert-meta { font-size: 7.5pt; color: var(--light-text); }
 
+    /* Achievements */
+    .achiev-item { margin-bottom: 4pt; }
+    .achiev-title { font-size: 8.5pt; font-weight: 700; color: var(--heading-color); }
+    .achiev-metric { font-size: 7.5pt; color: var(--accent-bg); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; }
+    .achiev-desc { font-size: 8pt; color: var(--muted-text); }
+
     /* Extracurricular */
     .extra-item { margin-bottom: 4pt; }
     .extra-name { font-size: 8.5pt; font-weight: 700; color: var(--heading-color); }
     .extra-desc { font-size: 8pt; color: var(--muted-text); line-height: 1.35; }
+
+    /* Tools */
+    .tool-tag {
+        display: inline-block; background: #EDF2F7; color: var(--muted-text);
+        padding: 2pt 6pt; border-radius: 2pt; font-size: 7.5pt; margin: 0 2pt 3pt 0;
+    }
 </style>
 </head>
 <body>
@@ -196,7 +243,7 @@
             <!-- Technical Skills -->
             {% if cv.technical_skills %}
             <div class="sb-section">
-                <div class="sb-heading">Comp&eacute;tences</div>
+                <div class="sb-heading">Tech Stack</div>
                 {% for skill in cv.technical_skills %}
                 <span class="skill-pill">{{ skill }}</span>
                 {% endfor %}
@@ -206,9 +253,19 @@
             <!-- Soft Skills -->
             {% if cv.soft_skills %}
             <div class="sb-section">
-                <div class="sb-heading">Qualit&eacute;s</div>
+                <div class="sb-heading">Soft Skills</div>
                 {% for skill in cv.soft_skills %}
                 <span class="skill-pill soft">{{ skill }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Tools/Equipment -->
+            {% if cv.tools_equipment %}
+            <div class="sb-section">
+                <div class="sb-heading">Outils</div>
+                {% for tool in cv.tools_equipment %}
+                <span class="skill-pill">{{ tool }}</span>
                 {% endfor %}
             </div>
             {% endif %}
@@ -261,7 +318,7 @@
         <!-- Experience -->
         {% if cv.experience %}
         <div class="section">
-            <div class="section-title">Exp&eacute;rience Professionnelle</div>
+            <div class="section-title">Exp&eacute;rience</div>
             {% for exp in cv.experience %}
             <div class="exp-item">
                 <div class="exp-top">
@@ -279,6 +336,38 @@
         </div>
         {% endif %}
 
+        <!-- Projects -->
+        {% if cv.projects %}
+        <div class="section">
+            <div class="section-title">Projets</div>
+            {% for proj in cv.projects %}
+            <div class="proj-item">
+                <div class="proj-name">{{ proj.name }}</div>
+                {% if proj.description %}<div class="proj-desc">{{ proj.description }}</div>{% endif %}
+                {% if proj.technologies %}
+                <div class="proj-tech">
+                    {% for t in proj.technologies %}<span class="proj-tech-tag">{{ t }}</span>{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Achievements -->
+        {% if cv.achievements %}
+        <div class="section">
+            <div class="section-title">R&eacute;alisations</div>
+            {% for a in cv.achievements %}
+            <div class="achiev-item">
+                <div class="achiev-title">{{ a.title }}</div>
+                {% if a.metric %}<div class="achiev-metric">{{ a.metric }}</div>{% endif %}
+                {% if a.description %}<div class="achiev-desc">{{ a.description }}</div>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- Education -->
         {% if cv.education %}
         <div class="section">
@@ -289,7 +378,7 @@
                     <span class="edu-degree">{{ edu.degree }}</span>
                     {% if edu.year %}<span class="edu-year">{{ edu.year }}</span>{% endif %}
                 </div>
-                {% if edu.institution %}<div class="edu-institution">{{ edu.institution }}{% if edu.honors %} &mdash; <span class="edu-honors">{{ edu.honors }}</span>{% endif %}</div>{% endif %}
+                {% if edu.institution %}<div class="edu-institution">{{ edu.institution }}{% if edu.honors %} &mdash; <em style="color: var(--accent-bg);">{{ edu.honors }}</em>{% endif %}</div>{% endif %}
             </div>
             {% endfor %}
         </div>
